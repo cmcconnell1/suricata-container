@@ -23,8 +23,8 @@ A production-ready Docker container for running Suricata IDS/IPS with the latest
 - **Automatic rule updates** via suricata-update integration
 - **Health monitoring** and comprehensive logging with flexible configuration
 - **CircleCI pipeline** for automated builds, security scanning, and deployment
-- **Cross-platform builds** with proper macOS development support (linux/amd64 targeting)
-- **Docker Hub authentication** handling for modern Docker requirements
+- **Cross-platform builds** with proper (local) macOS development support (linux/amd64 targeting)
+- **Docker Hub authentication** (_temp to be changed per corp policies_) handling for modern Docker requirements
 - **Configurable** via environment variables and custom configurations
 - **Production-ready** with proper security capabilities and optimized multi-stage builds
 
@@ -137,9 +137,9 @@ make clean
 
 ### Platform Support
 
-- **macOS**: Automatically builds with `--platform linux/amd64` for production compatibility
-- **Linux**: Native builds without platform flags
-- **CircleCI**: Uses native Linux environment, no special flags needed
+- **macOS**: (_for local development_) Automatically builds with `--platform linux/amd64` for production compatibility
+- **Linux**: (_default for CI/CD_) Native builds without platform flags
+  - **Target CI/CD tool: CircleCI**: Uses native Linux environment, no special flags needed
 
 ## CI/CD Pipeline
 
@@ -148,7 +148,7 @@ The project includes a complete CircleCI pipeline that:
 1. **Builds** the Docker image with layer caching
 2. **Tests** the built image functionality
 3. **Scans** for security vulnerabilities using Trivy
-4. **Pushes** to Docker Hub on successful builds (main branch only)
+4. **Pushes** to container registry (e.g. currently Docker Hub) on successful builds (main branch only)
 
 ### Setup CI/CD
 

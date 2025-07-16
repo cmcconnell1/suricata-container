@@ -4,7 +4,7 @@
 **Status**: PRODUCTION READY  
 **Git Commit**: 3502f10
 
-## Current Achievement
+## Current Status
 
 ### Successfully Built and Tested
 - **Suricata Version**: 8.0.0 (latest stable, July 2025)
