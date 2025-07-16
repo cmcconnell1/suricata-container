@@ -80,22 +80,24 @@ jobs:
           at: workspace
       - add_ssh_keys:
           fingerprints:
-            - "YOUR_SSH_KEY_FINGERPRINT"
+            - "${SSH_KEY_FINGERPRINT}"
       - setup_remote_docker:
           docker_layer_caching: true
       - docker/install-docker-tools
       - run:
           name: Load image
           command: docker load -i workspace/suricata.tar
-      - docker/check:
-          docker-username: DOCKERHUB_USERNAME
-          docker-password: DOCKERHUB_PASSWORD
-      - docker/publish:
-          image: suricata
-          tag: latest,${CIRCLE_SHA1:0:7}
-          registry: docker.io
-          docker-username: DOCKERHUB_USERNAME
-          docker-password: DOCKERHUB_PASSWORD
+      - run:
+          name: Login to Docker Hub
+          command: |
+            echo "$DOCKERHUB_PASSWORD" | docker login -u "$DOCKERHUB_USERNAME" --password-stdin
+      - run:
+          name: Tag and push image
+          command: |
+            docker tag suricata:latest $DOCKERHUB_USERNAME/suricata:latest
+            docker tag suricata:latest $DOCKERHUB_USERNAME/suricata:${CIRCLE_SHA1:0:7}
+            docker push $DOCKERHUB_USERNAME/suricata:latest
+            docker push $DOCKERHUB_USERNAME/suricata:${CIRCLE_SHA1:0:7}
 
 workflows:
   version: 2
