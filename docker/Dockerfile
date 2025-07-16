@@ -79,7 +79,17 @@ COPY --from=builder /usr/bin/suricatasc /usr/bin/suricatasc
 COPY --from=builder /usr/bin/suricata-update /usr/bin/suricata-update
 COPY --from=builder /etc/suricata /etc/suricata
 COPY --from=builder /usr/lib/libhtp* /usr/lib/
-COPY --from=builder /usr/lib/python3.12/site-packages/suricata* /usr/lib/python3.12/site-packages/
+
+# Copy Python packages needed for suricata-update
+COPY --from=builder /usr/lib/python3.12/site-packages/suricata /usr/lib/python3.12/site-packages/suricata
+COPY --from=builder /usr/lib/python3.12/site-packages/suricata_update-1.3.3.dist-info /usr/lib/python3.12/site-packages/suricata_update-1.3.3.dist-info
+COPY --from=builder /usr/lib/python3.12/site-packages/yaml /usr/lib/python3.12/site-packages/yaml
+COPY --from=builder /usr/lib/python3.12/site-packages/PyYAML-6.0.1.dist-info /usr/lib/python3.12/site-packages/PyYAML-6.0.1.dist-info
+COPY --from=builder /usr/lib/python3.12/site-packages/_yaml /usr/lib/python3.12/site-packages/_yaml
+COPY --from=builder /usr/lib/python3.12/site-packages/packaging /usr/lib/python3.12/site-packages/packaging
+COPY --from=builder /usr/lib/python3.12/site-packages/packaging-24.0.dist-info /usr/lib/python3.12/site-packages/packaging-24.0.dist-info
+COPY --from=builder /usr/lib/python3.12/site-packages/pyparsing /usr/lib/python3.12/site-packages/pyparsing
+COPY --from=builder /usr/lib/python3.12/site-packages/pyparsing-3.1.2.dist-info /usr/lib/python3.12/site-packages/pyparsing-3.1.2.dist-info
 
 # Create directories
 RUN mkdir -p /var/log/suricata /var/run/suricata /etc/suricata/rules
