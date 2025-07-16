@@ -2,6 +2,11 @@
 
 set -e
 
+# Handle version check specially
+if [ "$1" = "--version" ] || [ "$1" = "-V" ]; then
+    exec suricata -V
+fi
+
 # Initialize default values
 INTERFACE=${INTERFACE:-eth0}
 UPDATE_RULES=${UPDATE_RULES:-false}
