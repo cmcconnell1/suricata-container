@@ -33,9 +33,20 @@ jobs:
       - run:
           name: Test built image
           command: |
+            # Test version check
             docker run --rm --cap-add=NET_ADMIN --cap-add=NET_RAW \
               -e INTERFACE=eth0 -e UPDATE_RULES=false \
               suricata:latest --version
+
+            # Test suricata-update tool
+            docker run --rm --cap-add=NET_ADMIN --cap-add=NET_RAW \
+              -e UPDATE_RULES=false \
+              suricata:latest sh -c "suricata-update --help | head -5"
+
+            # Test configuration validation
+            docker run --rm --cap-add=NET_ADMIN --cap-add=NET_RAW \
+              -e UPDATE_RULES=false -e SKIP_CONFIG_TEST=false \
+              suricata:latest sh -c "suricata -T -c /etc/suricata/suricata.yaml"
       - run:
           name: Save image artifact
           command: |

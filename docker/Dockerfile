@@ -66,6 +66,8 @@ RUN apk add --no-cache \
     libcap-ng \
     openssl \
     python3 \
+    py3-pip \
+    py3-yaml \
     tcpdump \
     jq \
     libstdc++ \
@@ -77,6 +79,7 @@ COPY --from=builder /usr/bin/suricatasc /usr/bin/suricatasc
 COPY --from=builder /usr/bin/suricata-update /usr/bin/suricata-update
 COPY --from=builder /etc/suricata /etc/suricata
 COPY --from=builder /usr/lib/libhtp* /usr/lib/
+COPY --from=builder /usr/lib/python3.12/site-packages/suricata* /usr/lib/python3.12/site-packages/
 
 # Create directories
 RUN mkdir -p /var/log/suricata /var/run/suricata /etc/suricata/rules
