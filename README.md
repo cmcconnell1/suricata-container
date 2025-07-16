@@ -116,36 +116,44 @@ The project includes optimized configurations for:
 - **Health monitoring** and comprehensive logging
 - **Security capabilities** for network monitoring
 
-## CI/CD Integration Notes
+## CI/CD Integration
 
-### Development vs Production Environments
+### Repository and CI/CD Setup
 
-**Important**: This project is configured for dual CI/CD support due to integration limitations:
+**Current Configuration**:
+- **Primary Repository**: Bitbucket (https://bitbucket.org/cmcc123/suricata-container)
+- **CI/CD**: CircleCI with Bitbucket integration
+- **Docker Hub**: Automated publishing to `cmcc123/suricata` on successful builds
 
-#### **Development Environment (Current)**
-- **Repository**: GitHub (https://github.com/cmcconnell1/suricata-container)
-- **CI/CD**: CircleCI with GitHub App integration
-- **Reason**: CircleCI's free tier only supports GitHub, GitLab, and Bitbucket Data Center integrations
+### Environment Variables Required
 
-#### **Production Environment (Client)**
-- **Repository**: Bitbucket (client environment)
-- **CI/CD**: CircleCI with Bitbucket Data Center integration
-- **Configuration**: Same `.circleci/config.yml` will work in both environments
+For CircleCI to work properly, configure these environment variables in your CircleCI project:
 
-#### **Why This Setup?**
-CircleCI's free tier does not support Bitbucket Cloud integration, only:
-- GitHub App
-- GitLab
-- Bitbucket Data Center (enterprise)
+1. **SSH_KEY_FINGERPRINT** - SSH key fingerprint for Bitbucket repository access
+2. **DOCKERHUB_USERNAME** - Docker Hub username for image publishing
+3. **DOCKERHUB_PASSWORD** - Docker Hub password/token for image publishing
 
-The client environment will use Bitbucket + CircleCI enterprise, but for development and testing, we use GitHub + CircleCI free tier with identical configuration.
+### Pipeline Workflow
 
-#### **Migration to Client Environment**
-When moving to the client's Bitbucket + CircleCI setup:
-1. Push code to client's Bitbucket repository
-2. Configure CircleCI project with Bitbucket Data Center integration
-3. Set environment variables (`SSH_KEY_FINGERPRINT`, `DOCKERHUB_USERNAME`, `DOCKERHUB_PASSWORD`)
-4. The existing `.circleci/config.yml` will work without changes
+The CircleCI pipeline automatically:
+1. **Build** - Builds the Suricata Docker image
+2. **Test** - Runs comprehensive functionality tests
+3. **Scan** - Performs security scanning with Trivy
+4. **Push** - Publishes to Docker Hub (on main branch only)
+
+### Published Images
+
+Successfully built images are available at:
+- **Latest**: `cmcc123/suricata:latest`
+- **Tagged**: `cmcc123/suricata:<commit-hash>`
+
+### Alternative Repository Setup
+
+If you need to use GitHub for development, you can add it as a secondary remote:
+```bash
+git remote add github git@github.com:yourusername/suricata-container.git
+git push github main
+```
 
 ---
 
