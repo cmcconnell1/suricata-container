@@ -114,6 +114,39 @@ The project includes optimized configurations for:
 - **Health monitoring** and comprehensive logging
 - **Security capabilities** for network monitoring
 
+## CI/CD Integration Notes
+
+### Development vs Production Environments
+
+**Important**: This project is configured for dual CI/CD support due to integration limitations:
+
+#### **Development Environment (Current)**
+- **Repository**: GitHub (https://github.com/cmcconnell1/suricata-container)
+- **CI/CD**: CircleCI with GitHub App integration
+- **Reason**: CircleCI's free tier only supports GitHub, GitLab, and Bitbucket Data Center integrations
+
+#### **Production Environment (Client)**
+- **Repository**: Bitbucket (client environment)
+- **CI/CD**: CircleCI with Bitbucket Data Center integration
+- **Configuration**: Same `.circleci/config.yml` will work in both environments
+
+#### **Why This Setup?**
+CircleCI's free tier does not support Bitbucket Cloud integration, only:
+- GitHub App
+- GitLab
+- Bitbucket Data Center (enterprise)
+
+The client environment will use Bitbucket + CircleCI enterprise, but for development and testing, we use GitHub + CircleCI free tier with identical configuration.
+
+#### **Migration to Client Environment**
+When moving to the client's Bitbucket + CircleCI setup:
+1. Push code to client's Bitbucket repository
+2. Configure CircleCI project with Bitbucket Data Center integration
+3. Set environment variables (`SSH_KEY_FINGERPRINT`, `DOCKERHUB_USERNAME`, `DOCKERHUB_PASSWORD`)
+4. The existing `.circleci/config.yml` will work without changes
+
+---
+
 ## Building and Testing
 
 The build system automatically detects your platform and sets appropriate flags:
