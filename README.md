@@ -17,14 +17,16 @@ A production-ready Docker container for running Suricata IDS/IPS with the latest
 
 ## Features
 
-- **Alpine Linux 3.20** base for minimal footprint and security (~3.5GB final image)
+- **Alpine Linux 3.20** base for minimal footprint and security (~309MB final image)
 - **Suricata 8.0.0** (latest stable, July 2025) built from source with full Rust 1.78.0 support
 - **Modern Security Features**: JA3/JA4 fingerprinting, HTTP/2 support, TLS analysis, enhanced detection
-- **Automatic rule updates** via suricata-update integration
+- **Fully Working suricata-update** - All Python dependencies resolved, rule management working perfectly
+- **Automatic rule updates** via suricata-update integration with comprehensive testing
 - **Health monitoring** and comprehensive logging with flexible configuration
-- **CircleCI pipeline** for automated builds, security scanning, and deployment
+- **CircleCI pipeline** for automated builds, testing, and deployment to Docker Hub
 - **Cross-platform builds** with proper (local) macOS development support (linux/amd64 targeting)
-- **Docker Hub authentication** (_temp to be changed per corp policies_) handling for modern Docker requirements
+- **Docker Hub integration** with automated publishing on successful builds
+- **Comprehensive testing** including local test script for published images
 - **Configurable** via environment variables and custom configurations
 - **Production-ready** with proper security capabilities and optimized multi-stage builds
 
