@@ -4,8 +4,8 @@ set -e
 
 # Handle special cases
 if [ "$1" = "--version" ] || [ "$1" = "-V" ]; then
-    # Use --version flag which doesn't require capabilities
-    exec suricata --version 2>/dev/null || suricata -V 2>/dev/null || echo "Suricata 8.0.0-release"
+    # Use -V flag for version check
+    exec suricata -V
 fi
 
 # Handle shell commands (for testing)
