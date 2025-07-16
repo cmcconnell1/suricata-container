@@ -1,5 +1,10 @@
 version: 2.1
 
+# Required Environment Variables:
+# - SSH_KEY_FINGERPRINT: SSH key fingerprint for Bitbucket access
+# - DOCKERHUB_USERNAME: Docker Hub username for image publishing
+# - DOCKERHUB_PASSWORD: Docker Hub password/token for image publishing
+
 orbs:
   docker: circleci/docker@2.2.0
 
@@ -15,6 +20,9 @@ jobs:
     executor: suricata-builder
     steps:
       - checkout
+      - add_ssh_keys:
+          fingerprints:
+            - "${SSH_KEY_FINGERPRINT}"
       - setup_remote_docker:
           docker_layer_caching: true
       - docker/install-docker-tools
@@ -43,6 +51,9 @@ jobs:
     steps:
       - attach_workspace:
           at: workspace
+      - add_ssh_keys:
+          fingerprints:
+            - "${SSH_KEY_FINGERPRINT}"
       - setup_remote_docker:
           docker_layer_caching: true
       - docker/install-docker-tools
@@ -67,6 +78,9 @@ jobs:
     steps:
       - attach_workspace:
           at: workspace
+      - add_ssh_keys:
+          fingerprints:
+            - "YOUR_SSH_KEY_FINGERPRINT"
       - setup_remote_docker:
           docker_layer_caching: true
       - docker/install-docker-tools
