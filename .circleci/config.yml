@@ -1,0 +1,99 @@
+version: 2.1
+
+orbs:
+  docker: circleci/docker@2.2.0
+
+executors:
+  suricata-builder:
+    docker:
+      - image: cimg/base:2023.03
+    resource_class: medium
+    working_directory: ~/project
+
+jobs:
+  build:
+    executor: suricata-builder
+    steps:
+      - checkout
+      - setup_remote_docker:
+          docker_layer_caching: true
+      - docker/install-docker-tools
+      - run:
+          name: Build Suricata image
+          command: |
+            docker build -t suricata:latest ./docker
+      - run:
+          name: Test built image
+          command: |
+            docker run --rm --cap-add=NET_ADMIN --cap-add=NET_RAW \
+              -e INTERFACE=eth0 -e UPDATE_RULES=false \
+              suricata:latest --version
+      - run:
+          name: Save image artifact
+          command: |
+            mkdir -p workspace
+            docker save -o workspace/suricata.tar suricata:latest
+      - persist_to_workspace:
+          root: workspace
+          paths:
+            - suricata.tar
+
+  scan:
+    executor: suricata-builder
+    steps:
+      - attach_workspace:
+          at: workspace
+      - setup_remote_docker:
+          docker_layer_caching: true
+      - docker/install-docker-tools
+      - run:
+          name: Load image
+          command: docker load -i workspace/suricata.tar
+      - run:
+          name: Install Trivy
+          command: |
+            sudo apt-get update && sudo apt-get install -y wget apt-transport-https gnupg lsb-release
+            wget -qO - https://aquasecurity.github.io/trivy-repo/deb/public.key | sudo apt-key add -
+            echo deb https://aquasecurity.github.io/trivy-repo/deb $(lsb_release -sc) main | sudo tee -a /etc/apt/sources.list.d/trivy.list
+            sudo apt-get update
+            sudo apt-get install -y trivy
+      - run:
+          name: Scan image with Trivy
+          command: |
+            trivy image --security-checks vuln,config --exit-code 1 --severity CRITICAL suricata:latest
+
+  push:
+    executor: suricata-builder
+    steps:
+      - attach_workspace:
+          at: workspace
+      - setup_remote_docker:
+          docker_layer_caching: true
+      - docker/install-docker-tools
+      - run:
+          name: Load image
+          command: docker load -i workspace/suricata.tar
+      - docker/check:
+          docker-username: DOCKERHUB_USERNAME
+          docker-password: DOCKERHUB_PASSWORD
+      - docker/publish:
+          image: suricata
+          tag: latest,${CIRCLE_SHA1:0:7}
+          registry: docker.io
+          docker-username: DOCKERHUB_USERNAME
+          docker-password: DOCKERHUB_PASSWORD
+
+workflows:
+  version: 2
+  build_scan_deploy:
+    jobs:
+      - build
+      - scan:
+          requires:
+            - build
+      - push:
+          requires:
+            - scan
+          filters:
+            branches:
+              only: main
