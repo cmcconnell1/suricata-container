@@ -36,16 +36,14 @@ jobs:
             # Test version check
             docker run --rm --cap-add=NET_ADMIN --cap-add=NET_RAW \
               -e INTERFACE=eth0 -e UPDATE_RULES=false \
-              suricata:latest --version
+              suricata:latest -V
 
             # Test suricata-update tool
-            docker run --rm --cap-add=NET_ADMIN --cap-add=NET_RAW \
-              -e UPDATE_RULES=false \
+            docker run --rm --cap-add=NET_ADMIN --cap-add=NET_RAW --entrypoint="" \
               suricata:latest sh -c "suricata-update --help | head -5"
 
             # Test configuration validation
-            docker run --rm --cap-add=NET_ADMIN --cap-add=NET_RAW \
-              -e UPDATE_RULES=false -e SKIP_CONFIG_TEST=false \
+            docker run --rm --cap-add=NET_ADMIN --cap-add=NET_RAW --entrypoint="" \
               suricata:latest sh -c "suricata -T -c /etc/suricata/suricata.yaml"
       - run:
           name: Save image artifact
