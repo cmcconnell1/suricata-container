@@ -109,7 +109,7 @@ suricata-container/
 The project includes optimized configurations for:
 
 - **Multi-stage Docker build** with Alpine Linux base
-- **Suricata 6.0.13** with Lua, GeoIP, and Rust support
+- **Suricata 8.0.0** with Lua, GeoIP, and Rust support
 - **Custom rule sets** and automatic updates
 - **Health monitoring** and comprehensive logging
 - **Security capabilities** for network monitoring
