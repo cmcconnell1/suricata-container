@@ -73,7 +73,7 @@ print_status "Testing basic functionality..."
 
 # Test 1: Version check
 print_status "Test 1: Version check"
-if docker run --rm --cap-add=NET_ADMIN --cap-add=NET_RAW "$LOCAL_TAG" --version; then
+if docker run --rm --cap-add=NET_ADMIN --cap-add=NET_RAW --entrypoint="" "$LOCAL_TAG" suricata -V; then
     print_success "Version check passed"
 else
     print_error "Version check failed"
