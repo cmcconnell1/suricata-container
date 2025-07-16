@@ -1,8 +1,9 @@
 # Suricata Container Project Status
 
-**Date**: July 16, 2025  
-**Status**: PRODUCTION READY  
-**Git Commit**: 3502f10
+**Date**: July 16, 2025
+**Status**: PRODUCTION READY
+**Git Commit**: 540258a
+**GitHub Repository**: https://github.com/cmcconnell1/suricata-container
 
 ## Current Status
 
