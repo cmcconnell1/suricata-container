@@ -50,6 +50,34 @@ The container has been successfully built and tested! Most common issues have be
 - Allocate more resources to Docker Desktop (CPU/Memory)
 - Enable VirtioFS for better file system performance
 
+## Version-Related Issues
+
+**Build fails with dependency errors**
+- Check version compatibility matrix in SETUP.md
+- Ensure Alpine version supports required Rust version
+- For Suricata 8.x, use Alpine 3.20+
+- For older Suricata versions, use compatible Alpine versions
+
+**Suricata features missing**
+- Verify you're using the correct Suricata version
+- Check build arguments: `docker build --build-arg SURICATA_VERSION=8.0.0`
+- Some features require specific minimum versions
+
+**Container won't start after version change**
+- Rebuild the image completely: `docker build --no-cache`
+- Check configuration compatibility with new version
+- Verify all dependencies are available for the target version
+
+**Version verification**
+```bash
+# Check what version is actually built
+docker run --rm --cap-add=NET_ADMIN --cap-add=NET_RAW \
+  --entrypoint="" suricata:latest suricata -V
+
+# Check build arguments used
+docker inspect suricata:latest | grep -A 10 "BuildArgs"
+```
+
 ## Debugging
 
 Run in foreground:

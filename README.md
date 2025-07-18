@@ -178,6 +178,59 @@ make all
 make clean
 ```
 
+## Version Control
+
+### Controlling Component Versions
+
+You can control the versions of Suricata and other components in several ways:
+
+#### Method 1: Build Arguments (Recommended)
+```bash
+# Build with specific Suricata version
+docker build --build-arg SURICATA_VERSION=7.0.6 -f docker/Dockerfile -t suricata:7.0.6 .
+
+# Build with specific Alpine version
+docker build --build-arg ALPINE_VERSION=3.19 -f docker/Dockerfile -t suricata .
+
+# Combine multiple version overrides
+docker build \
+  --build-arg SURICATA_VERSION=7.0.6 \
+  --build-arg ALPINE_VERSION=3.19 \
+  -f docker/Dockerfile -t suricata:custom .
+```
+
+#### Method 2: Environment Variables with Makefile
+```bash
+# Build specific version via Makefile
+SURICATA_VERSION=7.0.6 make build
+
+# Or export for multiple commands
+export SURICATA_VERSION=7.0.6
+make build
+make test
+```
+
+#### Method 3: Modify Configuration Files
+For permanent changes, update version values in:
+- **Dockerfile**: `ARG SURICATA_VERSION=8.0.0` (line 33)
+- **Makefile**: `SURICATA_VERSION ?= 8.0.0` (line 4)
+
+### Available Version Controls
+
+| Component | Default | Control Method | Example |
+|-----------|---------|----------------|---------|
+| **Suricata** | 8.0.0 | `SURICATA_VERSION` | `7.0.6`, `6.0.14` |
+| **Alpine Linux** | 3.20 | `ALPINE_VERSION` | `3.19`, `3.18` |
+| **Image Tag** | 8.0.0 | `TAG` | `latest`, `custom` |
+
+### Version Compatibility Notes
+
+- **Suricata 8.x**: Requires Alpine 3.20+ for Rust 1.78.0 support
+- **Suricata 7.x**: Compatible with Alpine 3.18+
+- **Suricata 6.x**: Compatible with Alpine 3.16+
+
+Always test version combinations before production deployment.
+
 ### Platform Support
 
 - **macOS**: (_for local development_) Automatically builds with `--platform linux/amd64` for production compatibility

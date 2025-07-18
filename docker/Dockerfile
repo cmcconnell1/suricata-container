@@ -1,7 +1,31 @@
-# Build stage
-FROM alpine:3.20 AS builder
+# =============================================================================
+# SURICATA DOCKER BUILD - MULTI-STAGE DOCKERFILE
+# =============================================================================
+# This Dockerfile builds a production-ready Suricata IDS/IPS container
+# using Alpine Linux for minimal footprint and maximum security.
+#
+# Build Arguments (can be overridden at build time):
+# - ALPINE_VERSION: Base Alpine Linux version (default: 3.20)
+# - SURICATA_VERSION: Suricata version to build (default: 8.0.0)
+#
+# Usage:
+#   docker build -f docker/Dockerfile -t suricata .
+#   docker build --build-arg SURICATA_VERSION=7.0.6 -f docker/Dockerfile -t suricata:7.0.6 .
+# =============================================================================
 
+# -----------------------------------------------------------------------------
+# BUILD STAGE: Compile Suricata from source
+# -----------------------------------------------------------------------------
+# This stage contains all build dependencies and compiles Suricata.
+# The compiled binaries will be copied to the runtime stage.
+ARG ALPINE_VERSION=3.20
+FROM alpine:${ALPINE_VERSION} AS builder
+
+# Install build dependencies
+# These packages are needed to compile Suricata from source but won't be
+# included in the final runtime image to keep it minimal
 RUN apk add --no-cache \
+    # Core build tools
     build-base \
     autoconf \
     automake \
@@ -9,28 +33,38 @@ RUN apk add --no-cache \
     pkgconf \
     flex \
     bison \
+    # Network libraries for packet capture and manipulation
     libpcap-dev \
     libnet-dev \
+    # Configuration and data format libraries
     yaml-dev \
     jansson-dev \
     file-dev \
+    # Pattern matching and compression
     pcre2-dev \
     zlib-dev \
+    # Security capabilities
     libcap-dev \
     libcap-ng-dev \
+    # SSL/TLS support
     openssl-dev \
+    # Python support for suricata-update tool
     python3-dev \
     py3-pip \
     py3-yaml \
+    # Version control and download tools
     git \
     curl \
+    # Linux kernel headers for low-level network access
     linux-headers \
+    # Rust compiler for modern Suricata features
     rust \
     cargo
 
 # Install Suricata from source
 # Using latest stable version 8.0.0 (July 2025)
 ARG SURICATA_VERSION=8.0.0
+ARG RUST_VERSION=1.78.0
 RUN mkdir -p /usr/src/suricata && \
     cd /usr/src/suricata && \
     curl -L https://www.openinfosecfoundation.org/download/suricata-${SURICATA_VERSION}.tar.gz | tar xz --strip-components=1 && \

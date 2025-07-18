@@ -1,8 +1,25 @@
 .PHONY: build test push clean help login check-auth
 
+# =============================================================================
+# SURICATA CONTAINER BUILD CONFIGURATION
+# =============================================================================
+# Version Control Variables - Override these to build different versions
+#
+# Examples:
+#   SURICATA_VERSION=7.0.6 make build
+#   ALPINE_VERSION=3.19 SURICATA_VERSION=7.0.6 make build
+#   export SURICATA_VERSION=7.0.6 && make build && make test
+# =============================================================================
+
 # Suricata version - update this when upgrading Suricata
+# Supported versions: 8.0.x (current), 7.0.x (stable), 6.0.x (legacy)
 SURICATA_VERSION ?= 8.0.0
 
+# Alpine Linux base image version
+# Note: Suricata 8.x requires Alpine 3.20+ for Rust 1.78.0 support
+ALPINE_VERSION ?= 3.20
+
+# Docker image configuration
 IMAGE_NAME ?= suricata
 TAG ?= $(SURICATA_VERSION)
 DOCKER_USERNAME ?= yourusername
@@ -23,10 +40,14 @@ else
 endif
 
 build: ## Build the Suricata Docker image
-	@echo "Building Suricata $(SURICATA_VERSION) container..."
+	@echo "Building Suricata $(SURICATA_VERSION) container with Alpine $(ALPINE_VERSION)..."
 	@echo "Checking Docker Hub authentication..."
-	@docker pull alpine:3.20 >/dev/null 2>&1 || (echo "Error: Docker Hub authentication required. Run 'docker login' first." && exit 1)
-	docker build $(PLATFORM_FLAG) -t $(IMAGE_NAME):$(TAG) -f docker/Dockerfile .
+	@docker pull alpine:$(ALPINE_VERSION) >/dev/null 2>&1 || (echo "Error: Docker Hub authentication required. Run 'docker login' first." && exit 1)
+	docker build $(PLATFORM_FLAG) \
+		--build-arg SURICATA_VERSION=$(SURICATA_VERSION) \
+		--build-arg ALPINE_VERSION=$(ALPINE_VERSION) \
+		-t $(IMAGE_NAME):$(TAG) \
+		-f docker/Dockerfile .
 
 test: ## Test the built Docker image
 	docker run $(PLATFORM_FLAG) --rm --cap-add=NET_ADMIN --cap-add=NET_RAW --entrypoint="" $(IMAGE_NAME):$(TAG) suricata -V
@@ -61,8 +82,14 @@ help: ## Show this help message
 	@echo "Available targets:"
 	@awk 'BEGIN {FS = ":.*?## "} /^[a-zA-Z_-]+:.*?## / {printf "  %-15s %s\n", $$1, $$2}' $(MAKEFILE_LIST)
 	@echo ""
-	@echo "Variables:"
-	@echo "  SURICATA_VERSION Suricata version (default: $(SURICATA_VERSION))"
-	@echo "  IMAGE_NAME       Docker image name (default: $(IMAGE_NAME))"
-	@echo "  TAG              Docker image tag (default: $(TAG))"
-	@echo "  DOCKER_USERNAME  Docker Hub username (default: $(DOCKER_USERNAME))"
+	@echo "Version Control Variables:"
+	@echo "  SURICATA_VERSION Suricata version (current: $(SURICATA_VERSION))"
+	@echo "  ALPINE_VERSION   Alpine Linux version (current: $(ALPINE_VERSION))"
+	@echo "  IMAGE_NAME       Docker image name (current: $(IMAGE_NAME))"
+	@echo "  TAG              Docker image tag (current: $(TAG))"
+	@echo "  DOCKER_USERNAME  Docker Hub username (current: $(DOCKER_USERNAME))"
+	@echo ""
+	@echo "Version Control Examples:"
+	@echo "  SURICATA_VERSION=7.0.6 make build"
+	@echo "  ALPINE_VERSION=3.19 SURICATA_VERSION=7.0.6 make build"
+	@echo "  export SURICATA_VERSION=7.0.6 && make build && make test"

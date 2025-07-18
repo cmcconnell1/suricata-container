@@ -84,9 +84,56 @@ docker run -d --name suricata \
   yourusername/suricata
 ```
 
+## Version Management
+
+### Running Specific Versions
+
+You can run specific versions of the container:
+
+```bash
+# Run latest version
+docker run -d --name suricata \
+  --cap-add=NET_ADMIN --cap-add=NET_RAW \
+  cmcc123/suricata:latest
+
+# Run specific version by commit hash
+docker run -d --name suricata \
+  --cap-add=NET_ADMIN --cap-add=NET_RAW \
+  cmcc123/suricata:7e7b878
+
+# Run locally built version
+docker run -d --name suricata \
+  --cap-add=NET_ADMIN --cap-add=NET_RAW \
+  suricata:7.0.6
+```
+
+### Building Custom Versions
+
+```bash
+# Build with specific Suricata version
+docker build --build-arg SURICATA_VERSION=7.0.6 \
+  -f docker/Dockerfile -t suricata:7.0.6 .
+
+# Run your custom build
+docker run -d --name suricata \
+  --cap-add=NET_ADMIN --cap-add=NET_RAW \
+  suricata:7.0.6
+```
+
+### Version Verification
+
+```bash
+# Check Suricata version in running container
+docker exec suricata suricata -V
+
+# Check container image details
+docker inspect cmcc123/suricata:latest | grep -A 5 "Labels"
+```
+
 ## Performance Tuning
 
 For high traffic networks:
 - Increase memory limit (`-m 4G`)
 - Adjust `af-packet` settings in suricata.yaml
 - Consider disabling expensive rules
+- Use specific versions tested for your environment
