@@ -61,60 +61,93 @@ RUN apk add --no-cache \
     rust \
     cargo
 
-# Install Suricata from source
-# Using latest stable version 8.0.0 (July 2025)
+# -----------------------------------------------------------------------------
+# SURICATA COMPILATION: Download, configure, and build Suricata from source
+# -----------------------------------------------------------------------------
+# Download and compile Suricata with optimized settings for container deployment
 ARG SURICATA_VERSION=8.0.0
 ARG RUST_VERSION=1.78.0
 RUN mkdir -p /usr/src/suricata && \
     cd /usr/src/suricata && \
+    # Download and extract Suricata source code
     curl -L https://www.openinfosecfoundation.org/download/suricata-${SURICATA_VERSION}.tar.gz | tar xz --strip-components=1 && \
+    # Configure build with container-optimized settings
     ./configure --prefix=/usr --sysconfdir=/etc --localstatedir=/var \
+        # Disable features not needed in containers
         --disable-lua \
         --disable-gccmarch-native \
         --disable-geoip \
         --disable-hiredis \
+        # Enable modern features
         --enable-rust \
         --enable-revision \
         --with-revision="8.0.0-release" && \
+    # Compile Suricata (this takes several minutes)
     make && \
+    # Install binaries, configs, and rules
     make install-full && \
+    # Update library cache (ignore errors in containers)
     ldconfig || true
 
-# Install suricata-update
+# -----------------------------------------------------------------------------
+# SURICATA-UPDATE TOOL: Install Python-based rule management tool
+# -----------------------------------------------------------------------------
+# Install suricata-update for automatic rule downloads and management
 RUN pip3 install --break-system-packages --upgrade pip && \
     pip3 install --break-system-packages suricata-update
 
-# Runtime stage
+# =============================================================================
+# RUNTIME STAGE: Minimal production container
+# =============================================================================
+# This stage creates the final minimal container with only runtime dependencies
 FROM alpine:3.20
 
-# Install runtime dependencies
+# Install runtime dependencies (libraries only, no build tools)
+# These are the minimal packages needed to run Suricata in production
 RUN apk add --no-cache \
+    # Core network libraries (runtime versions)
     libpcap \
     libnet \
+    # Configuration and data format libraries
     yaml \
     jansson \
     file \
+    # Pattern matching and compression
     pcre2 \
     zlib \
+    # Security capabilities for privilege management
     libcap \
     libcap-ng \
+    # SSL/TLS support
     openssl \
+    # Python runtime for suricata-update
     python3 \
     py3-pip \
     py3-yaml \
+    # Network debugging tools
     tcpdump \
     jq \
+    # C++ standard library for Rust components
     libstdc++ \
+    # Clean up package cache to reduce image size
     && rm -rf /var/cache/apk/*
 
-# Copy from builder
+# -----------------------------------------------------------------------------
+# COPY COMPILED BINARIES: Transfer from build stage
+# -----------------------------------------------------------------------------
+# Copy the compiled Suricata binaries from the builder stage
 COPY --from=builder /usr/bin/suricata /usr/bin/suricata
 COPY --from=builder /usr/bin/suricatasc /usr/bin/suricatasc
 COPY --from=builder /usr/bin/suricata-update /usr/bin/suricata-update
+# Copy default Suricata configuration and HTTP library
 COPY --from=builder /etc/suricata /etc/suricata
 COPY --from=builder /usr/lib/libhtp* /usr/lib/
 
-# Copy Python packages needed for suricata-update
+# -----------------------------------------------------------------------------
+# PYTHON DEPENDENCIES: Copy packages needed for suricata-update
+# -----------------------------------------------------------------------------
+# These Python packages are required for suricata-update to function properly
+# We copy them explicitly to ensure all dependencies are available
 COPY --from=builder /usr/lib/python3.12/site-packages/suricata /usr/lib/python3.12/site-packages/suricata
 COPY --from=builder /usr/lib/python3.12/site-packages/suricata_update-1.3.3.dist-info /usr/lib/python3.12/site-packages/suricata_update-1.3.3.dist-info
 COPY --from=builder /usr/lib/python3.12/site-packages/yaml /usr/lib/python3.12/site-packages/yaml
@@ -125,24 +158,35 @@ COPY --from=builder /usr/lib/python3.12/site-packages/packaging-24.0.dist-info /
 COPY --from=builder /usr/lib/python3.12/site-packages/pyparsing /usr/lib/python3.12/site-packages/pyparsing
 COPY --from=builder /usr/lib/python3.12/site-packages/pyparsing-3.1.2.dist-info /usr/lib/python3.12/site-packages/pyparsing-3.1.2.dist-info
 
-# Create directories
+# -----------------------------------------------------------------------------
+# CONTAINER SETUP: Create directories and copy configuration
+# -----------------------------------------------------------------------------
+# Create required directories for Suricata operation
 RUN mkdir -p /var/log/suricata /var/run/suricata /etc/suricata/rules
 
-# Copy configuration
+# Copy custom configuration files and management scripts
 COPY docker/config/suricata.yaml /etc/suricata/
 COPY docker/config/rules/ /etc/suricata/rules/
 COPY scripts/entrypoint.sh /usr/local/bin/
 COPY scripts/healthcheck.sh /usr/local/bin/
 COPY scripts/update-rules.sh /usr/local/bin/
 
-# Set permissions
+# -----------------------------------------------------------------------------
+# SECURITY AND PERMISSIONS: Set up capabilities and permissions
+# -----------------------------------------------------------------------------
+# Grant network capabilities to Suricata binary (required for packet capture)
+# Make scripts executable
 RUN setcap cap_net_raw,cap_net_admin=eip /usr/bin/suricata && \
     chmod +x /usr/local/bin/*.sh
 
-# Health check
+# -----------------------------------------------------------------------------
+# CONTAINER RUNTIME CONFIGURATION
+# -----------------------------------------------------------------------------
+# Health check to monitor container status
 HEALTHCHECK --interval=30s --timeout=10s --start-period=30s --retries=3 \
     CMD /usr/local/bin/healthcheck.sh
 
+# Set working directory and define container entry point
 WORKDIR /etc/suricata
 ENTRYPOINT ["/usr/local/bin/entrypoint.sh"]
 CMD ["-i", "eth0"]

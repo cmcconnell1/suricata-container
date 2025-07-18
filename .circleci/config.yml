@@ -1,49 +1,90 @@
-version: 2.1
-
-# Required Environment Variables:
-# - SSH_KEY_FINGERPRINT: SSH key fingerprint for Bitbucket access
+# =============================================================================
+# CIRCLECI CONFIGURATION FOR SURICATA CONTAINER
+# =============================================================================
+# This configuration defines a complete CI/CD pipeline for building, testing,
+# scanning, and deploying the Suricata container to Docker Hub.
+#
+# Pipeline Stages:
+# 1. BUILD - Compile Suricata container from source
+# 2. SCAN - Security vulnerability scanning with Trivy
+# 3. PUSH - Publish to Docker Hub (main branch only)
+#
+# Required Environment Variables (set in CircleCI project settings):
+# - SSH_KEY_FINGERPRINT: SSH key fingerprint for Bitbucket repository access
 # - DOCKERHUB_USERNAME: Docker Hub username for image publishing
 # - DOCKERHUB_PASSWORD: Docker Hub password/token for image publishing
+# =============================================================================
 
+version: 2.1
+
+# -----------------------------------------------------------------------------
+# ORBS: External CircleCI extensions for common functionality
+# -----------------------------------------------------------------------------
 orbs:
+  # Docker orb provides Docker-related commands and utilities
   docker: circleci/docker@2.2.0
 
+# -----------------------------------------------------------------------------
+# EXECUTORS: Define reusable execution environments
+# -----------------------------------------------------------------------------
 executors:
+  # Standard build environment for Suricata container builds
   suricata-builder:
     docker:
+      # Use CircleCI's base image with Docker and common tools
       - image: cimg/base:2023.03
+    # Medium resource class provides sufficient CPU/memory for builds
     resource_class: medium
+    # Set consistent working directory
     working_directory: ~/project
 
+# -----------------------------------------------------------------------------
+# JOBS: Define individual pipeline jobs
+# -----------------------------------------------------------------------------
 jobs:
+  # BUILD JOB: Compile Suricata container and run functionality tests
   build:
     executor: suricata-builder
     steps:
+      # Check out source code from repository
       - checkout
+
+      # Add SSH keys for repository access (required for private repos)
       - add_ssh_keys:
           fingerprints:
             - "${SSH_KEY_FINGERPRINT}"
+
+      # Set up Docker environment with layer caching for faster builds
       - setup_remote_docker:
           docker_layer_caching: true
+
+      # Install Docker tools and utilities
       - docker/install-docker-tools
+
+      # Build the Suricata container image
       - run:
           name: Build Suricata image
           command: |
+            echo "Building Suricata container from source..."
             docker build -f docker/Dockerfile -t suricata:latest .
+
+      # Run comprehensive functionality tests on the built image
       - run:
           name: Test built image
           command: |
-            # Test version check
+            echo "Running container functionality tests..."
+
+            # Test 1: Version check - Verify Suricata binary works
             echo "Testing Suricata version..."
             docker run --rm --cap-add=NET_ADMIN --cap-add=NET_RAW --entrypoint="" \
               suricata:latest sh -c "suricata -V && echo 'Version check passed'"
 
-            # Test suricata-update tool
+            # Test 2: Suricata-update tool - Verify rule management works
             echo "Testing suricata-update tool..."
             docker run --rm --cap-add=NET_ADMIN --cap-add=NET_RAW --entrypoint="" \
               suricata:latest sh -c "suricata-update --help >/dev/null 2>&1 && echo 'Suricata-update test passed' || (echo 'Suricata-update test failed' && exit 1)"
 
-            # Test configuration validation (non-blocking)
+            # Test 3: Configuration validation (non-blocking in CI environment)
             echo "Testing configuration validation..."
             if docker run --rm --cap-add=NET_ADMIN --cap-add=NET_RAW --entrypoint="" \
               suricata:latest sh -c "suricata -T -c /etc/suricata/suricata.yaml"; then
