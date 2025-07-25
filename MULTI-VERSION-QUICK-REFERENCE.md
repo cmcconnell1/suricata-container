@@ -25,13 +25,21 @@ make build && make test
 
 ```bash
 # Suricata 7.x (stable/default)
-docker pull username/suricata:latest
-docker run -d --cap-add=NET_ADMIN --cap-add=NET_RAW username/suricata:latest
+docker pull cis-devops/suricata:latest
+docker run -d --cap-add=NET_ADMIN --cap-add=NET_RAW cis-devops/suricata:latest
 
 # Suricata 8.x (latest features)
-docker pull username/suricata:8-latest
-docker run -d --cap-add=NET_ADMIN --cap-add=NET_RAW username/suricata:8-latest
+docker pull cis-devops/suricata:8-latest
+docker run -d --cap-add=NET_ADMIN --cap-add=NET_RAW cis-devops/suricata:8-latest
 ```
+
+## Published Images
+
+Successfully built images are available at:
+- **Latest Stable**: `cis-devops/suricata:latest` (7.x)
+- **Latest Features**: `cis-devops/suricata:8-latest` (8.x)
+- **Specific Versions**: `cis-devops/suricata:7.0.11`, `cis-devops/suricata:8.0.0`
+- **Commit-based**: `cis-devops/suricata:<commit-hash>`
 
 ## Branch Structure
 
@@ -77,6 +85,12 @@ SURICATA_VERSION=8.0.0 ALPINE_VERSION=3.20 make build
    git checkout suricata-8.x && make build && make test
    ```
 
+## Repository Information
+
+- **Primary Repository**: Bitbucket (https://bitbucket.org/cis-devops/suricata-container)
+- **CI/CD**: CircleCI with Bitbucket integration
+- **Docker Registry**: Automated publishing to `cis-devops/suricata`
+
 ## CI/CD
 
 - **main branch** → Builds Suricata 7.x automatically (tags: `latest`, `7`, `7.0.11`)
@@ -119,18 +133,18 @@ docker run --rm --cap-add=NET_ADMIN --cap-add=NET_RAW \
 
 1. **Use main branch for stable deployments** (7.x)
    ```bash
-   docker pull username/suricata:latest  # Stable 7.x
+   docker pull cis-devops/suricata:latest  # Stable 7.x
    ```
 
 2. **Use suricata-8.x branch for latest features** (8.x)
    ```bash
-   docker pull username/suricata:8-latest  # Latest 8.x
+   docker pull cis-devops/suricata:8-latest  # Latest 8.x
    ```
 
 3. **Pin specific versions in production**
    ```bash
-   docker pull username/suricata:7.0.11  # Good
-   docker pull username/suricata:latest  # Avoid in prod
+   docker pull cis-devops/suricata:7.0.11  # Good
+   docker pull cis-devops/suricata:latest  # Avoid in prod
    ```
 
 4. **Test both versions when making changes**
@@ -171,11 +185,11 @@ make build
 ### Docker Migration
 ```bash
 # Old approach
-docker pull username/suricata:latest  # Was 8.x
+docker pull cis-devops/suricata:latest  # Was 8.x
 
 # New approach
-docker pull username/suricata:latest    # Now 7.x (stable)
-docker pull username/suricata:8-latest  # For 8.x (latest)
+docker pull cis-devops/suricata:latest    # Now 7.x (stable)
+docker pull cis-devops/suricata:8-latest  # For 8.x (latest)
 ```
 
 ---

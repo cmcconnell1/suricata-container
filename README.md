@@ -1,68 +1,146 @@
 # Suricata Container Project
 
-A production-ready Docker container for running Suricata IDS/IPS with the latest 2025 features and automated CI/CD pipeline using CircleCI.
+A production-ready Docker container for running Suricata IDS/IPS with multi-version support and automated CI/CD pipeline using CircleCI.
 
 ## Table of Contents
 
-- [Features](#features)
+- [Overview](#overview)
+- [Multi-Version Support](#multi-version-support)
 - [Quick Start](#quick-start)
-- [Project Structure](#project-structure)
+- [Features](#features)
+- [Installation](#installation)
 - [Configuration](#configuration)
 - [Building and Testing](#building-and-testing)
 - [CI/CD Pipeline](#cicd-pipeline)
-- [Environment Variables](#environment-variables)
-- [Deployment](#deployment)
+- [Published Images](#published-images)
 - [Documentation](#documentation)
-- [References](#references)
+- [Development](#development)
+- [Troubleshooting](#troubleshooting)
+- [Contributing](#contributing)
 
-## Features
+## Overview
 
-- **Alpine Linux 3.19** base for minimal footprint and security (~309MB final image)
-- **Suricata 7.0.11** (stable default, July 2025) built from source with full Rust 1.70.0 support
-- **Modern Security Features**: JA3/JA4 fingerprinting, HTTP/2 support, TLS analysis, enhanced detection
-- **Fully Working suricata-update** - All Python dependencies resolved, rule management working perfectly
-- **Automatic rule updates** via suricata-update integration with comprehensive testing
-- **Health monitoring** and comprehensive logging with flexible configuration
-- **CircleCI pipeline** for automated builds, testing, and deployment to Docker Hub
-- **Cross-platform builds** with proper (local) macOS development support (linux/amd64 targeting)
-- **Docker Hub integration** with automated publishing on successful builds
-- **Comprehensive testing** including local test script for published images
-- **Configurable** via environment variables and custom configurations
+This project provides production-ready Suricata IDS/IPS containers with support for both stable (7.x) and latest (8.x) versions. Built on Alpine Linux for minimal footprint and maximum security, with comprehensive CI/CD automation.
+
+### Key Highlights
+
+- **Multi-Version Support**: Suricata 7.x (stable/default) and 8.x (latest features)
+- **Production Ready**: Optimized Alpine Linux base (~309MB final image)
+- **Modern Security**: JA3/JA4 fingerprinting, HTTP/2 support, TLS analysis
+- **Automated CI/CD**: CircleCI pipeline with artifact retention
+- **Comprehensive Testing**: Automated builds, security scanning, and validation
+
+## Multi-Version Support
+
+The project supports two major Suricata versions using a branching strategy:
+
+| Version | Branch | Status | Docker Tags | Use Case |
+|---------|--------|--------|-------------|----------|
+| **7.x** | `main` | Stable (Default) | `latest`, `7`, `7.0.11` | Production deployments |
+| **8.x** | `suricata-8.x` | Latest Features | `8-latest`, `8`, `8.0.0` | Cutting-edge features |
+| **7.x** | `suricata-7.x` | Legacy | `7-latest` | Backward compatibility |
+
+### Quick Version Selection
+
+```bash
+# Stable 7.x (recommended for production)
+docker pull cis-devops/suricata:latest
+
+# Latest 8.x features
+docker pull cis-devops/suricata:8-latest
+
+# Specific versions
+docker pull cis-devops/suricata:7.0.11
+docker pull cis-devops/suricata:8.0.0
+```
 - **Production-ready** with proper security capabilities and optimized multi-stage builds
 
 ## Quick Start
 
+### Using Published Images
+
 ```bash
-# Show available commands and platform info
-make help
-
-# Check Docker Hub authentication (required for builds)
-make check-auth
-
-# Log in to Docker Hub if needed
-make login
-
-# Build locally (automatically detects macOS and sets correct platform)
-make build
-
-# Test the build
-make test
-
-# Run the container (Linux production)
-docker run -d --name suricata \
-  --net=host \
-  --cap-add=NET_ADMIN \
-  --cap-add=NET_RAW \
+# Pull and run stable 7.x (recommended for production)
+docker pull cis-devops/suricata:latest
+docker run -d --name suricata-stable \
+  --cap-add=NET_ADMIN --cap-add=NET_RAW \
+  --network host \
   -e INTERFACE=eth0 \
   -e UPDATE_RULES=true \
   -v ./logs:/var/log/suricata \
-  suricata:latest
+  cis-devops/suricata:latest
 
-# Run with custom interface
-docker run --cap-add=NET_ADMIN --cap-add=NET_RAW -e INTERFACE=eth1 suricata:latest
+# Pull and run latest 8.x features
+docker pull cis-devops/suricata:8-latest
+docker run -d --name suricata-latest \
+  --cap-add=NET_ADMIN --cap-add=NET_RAW \
+  --network host \
+  -e INTERFACE=eth0 \
+  cis-devops/suricata:8-latest
 
-# Skip configuration test if needed
-docker run --cap-add=NET_ADMIN --cap-add=NET_RAW -e SKIP_CONFIG_TEST=true suricata:latest
+# Check logs and status
+docker logs suricata-stable
+docker exec -it suricata-stable suricata -V
+```
+
+### Building from Source
+
+```bash
+# Clone repository
+git clone https://bitbucket.org/cis-devops/suricata-container.git
+cd suricata-container
+
+# Build Suricata 7.x (stable/default)
+git checkout main
+make build && make test
+
+# Build Suricata 8.x (latest features)
+git checkout suricata-8.x
+make build && make test
+
+# Show available commands
+make help
+```
+
+## Features
+
+### Suricata 7.x (Stable/Default)
+- **Alpine Linux 3.19** base for proven stability
+- **Suricata 7.0.11** with Rust 1.70.0 support
+- **Proven Features**: JA3 fingerprinting, stable TLS analysis
+- **Production Ready**: Extensively tested and validated
+- **Long-term Support**: Stable API and configuration
+
+### Suricata 8.x (Latest Features)
+- **Alpine Linux 3.20** base with latest security updates
+- **Suricata 8.0.0** with Rust 1.78.0 support
+- **Cutting-edge Features**: JA4 fingerprinting, HTTP/2 decompression
+- **Enhanced Detection**: Advanced TLS analysis and protocol support
+- **Modern Architecture**: Latest Rust optimizations
+
+### Common Features (Both Versions)
+- **Fully Working suricata-update** - All Python dependencies resolved
+- **Automatic rule updates** via suricata-update integration
+- **Health monitoring** and comprehensive logging
+- **Configurable** via environment variables and custom configurations
+- **Cross-platform builds** with proper development support
+- **Comprehensive testing** including automated validation
+- **Production-ready** with proper security capabilities and optimized multi-stage builds
+
+## Installation
+
+### Prerequisites
+
+- Docker 20.10+ with BuildKit support
+- For building: Git, Make, and appropriate platform tools
+- For production: Linux host with network interfaces
+
+### System Requirements
+
+- **Memory**: Minimum 512MB RAM, recommended 1GB+
+- **Storage**: ~500MB for image, additional space for logs
+- **Network**: Host network access or bridge with port forwarding
+- **Capabilities**: `NET_ADMIN` and `NET_RAW` for packet capture
 ```
 
 **Note**: On macOS, the build automatically targets `linux/amd64` for compatibility with production deployments.
@@ -116,44 +194,66 @@ The project includes optimized configurations for:
 - **Health monitoring** and comprehensive logging
 - **Security capabilities** for network monitoring
 
-## CI/CD Integration
+## CI/CD Pipeline
 
 ### Repository and CI/CD Setup
 
 **Current Configuration**:
-- **Primary Repository**: Bitbucket (https://bitbucket.org/cmcc123/suricata-container)
+- **Primary Repository**: Bitbucket (https://bitbucket.org/cis-devops/suricata-container)
 - **CI/CD**: CircleCI with Bitbucket integration
-- **Docker Hub**: Automated publishing to `cmcc123/suricata` on successful builds
+- **Artifact Retention**: Container images retained for 30 days
+- **Multi-Branch Support**: Automated builds for main, suricata-8.x, and suricata-7.x branches
+
+### Pipeline Workflow
+
+1. **Build** - Multi-stage Docker build with optimization
+2. **Test** - Comprehensive validation and security scanning
+3. **Scan** - Trivy security vulnerability scanning
+4. **Artifact** - Container images stored as CircleCI artifacts
+5. **Deploy** - Ready for AWS ECR deployment (TODO)
 
 ### Environment Variables Required
 
 For CircleCI to work properly, configure these environment variables in your CircleCI project:
 
 1. **SSH_KEY_FINGERPRINT** - SSH key fingerprint for Bitbucket repository access
-2. **DOCKERHUB_USERNAME** - Docker Hub username for image publishing
-3. **DOCKERHUB_PASSWORD** - Docker Hub password/token for image publishing
+2. **AWS_ACCESS_KEY_ID** - AWS access key for ECR publishing (TODO)
+3. **AWS_SECRET_ACCESS_KEY** - AWS secret key for ECR publishing (TODO)
+4. **AWS_DEFAULT_REGION** - AWS region for ECR repository (TODO)
 
 ### Pipeline Workflow
 
 The CircleCI pipeline automatically:
-1. **Build** - Builds the Suricata Docker image
-2. **Test** - Runs comprehensive functionality tests
-3. **Scan** - Performs security scanning with Trivy
-4. **Push** - Publishes to Docker Hub (on main branch only)
+1. **Build** - Multi-stage Docker build with optimization
+2. **Test** - Comprehensive validation and security scanning
+3. **Scan** - Trivy security vulnerability scanning
+4. **Artifact** - Container images stored as CircleCI artifacts
+5. **Deploy** - Ready for AWS ECR deployment (TODO)
 
-### Published Images
+### Branch-Specific Builds
+
+- **main branch** → Builds Suricata 7.x (tags: `latest`, `7`, `7.0.11`)
+- **suricata-8.x branch** → Builds Suricata 8.x (tags: `8-latest`, `8`, `8.0.0`)
+- **suricata-7.x branch** → Builds Suricata 7.x (tags: `7-latest`)
+
+## Published Images
 
 Successfully built images are available at:
-- **Latest**: `cmcc123/suricata:latest`
-- **Tagged**: `cmcc123/suricata:<commit-hash>`
+- **Latest Stable**: `cmcc123/suricata:latest` (7.x)
+- **Latest Features**: `cis-devops/suricata:8-latest` (8.x)
+- **Specific Versions**: `cis-devops/suricata:7.0.11`, `cis-devops/suricata:8.0.0`
+- **Commit-based**: `cmcc123/suricata:<commit-hash>`
 
-### Alternative Repository Setup
+### Image Information
 
-If you need to use GitHub for development, you can add it as a secondary remote:
-```bash
-git remote add github git@github.com:yourusername/suricata-container.git
-git push github main
-```
+| Tag | Version | Size | Base | Use Case |
+|-----|---------|------|------|----------|
+| `latest` | 7.0.11 | ~309MB | Alpine 3.19 | Production (stable) |
+| `8-latest` | 8.0.0 | ~315MB | Alpine 3.20 | Production (latest) |
+| `7` | 7.0.11 | ~309MB | Alpine 3.19 | 7.x family |
+| `8` | 8.0.0 | ~315MB | Alpine 3.20 | 8.x family |
+
+
 
 ---
 
@@ -177,41 +277,6 @@ make all
 # Clean up images
 make clean
 ```
-
-## Multi-Version Support
-
-This project supports both **Suricata 7.x** (stable/default) and **Suricata 8.x** (latest) using a branching strategy:
-
-### Branch Structure
-- **`main` branch** → Suricata 7.x (stable/default: 7.0.11)
-- **`suricata-8.x` branch** → Suricata 8.x (latest: 8.0.0)
-- **`suricata-7.x` branch** → Suricata 7.x (legacy branch, same as main)
-
-### Quick Start by Version
-
-#### Suricata 7.x (Default/Stable)
-```bash
-git checkout main
-make build
-make test
-```
-
-#### Suricata 8.x (Latest Features)
-```bash
-git checkout suricata-8.x
-make build
-make test
-```
-
-### Docker Hub Tags
-| Tag | Description | Branch | Usage |
-|-----|-------------|--------|-------|
-| `latest` | Latest Suricata 7.x | main | Production (stable) |
-| `7`, `7.0.11` | Suricata 7.x versions | main | Production (7.x family) |
-| `8-latest` | Latest Suricata 8.x | suricata-8.x | Production (latest features) |
-| `8`, `8.0.0` | Suricata 8.x versions | suricata-8.x | Production (8.x family) |
-
-**Detailed Documentation**: See [docs/MULTI-VERSION.md](docs/MULTI-VERSION.md) and [docs/TAGGING-STRATEGY.md](docs/TAGGING-STRATEGY.md)
 
 ## Version Control
 
@@ -247,23 +312,22 @@ make test
 
 #### Method 3: Modify Configuration Files
 For permanent changes, update version values in:
-- **Dockerfile**: `ARG SURICATA_VERSION=7.0.11` (line 70)
-- **Makefile**: `SURICATA_VERSION ?= 7.0.11` (line 16)
+- **Dockerfile**: `ARG SURICATA_VERSION=8.0.0` (line 33)
+- **Makefile**: `SURICATA_VERSION ?= 8.0.0` (line 4)
 
 ### Available Version Controls
 
-| Component | Main Branch (7.x) | Suricata-8.x Branch | Control Method | Example |
-|-----------|-------------------|---------------------|----------------|---------|
-| **Suricata** | 7.0.11 | 8.0.0 | `SURICATA_VERSION` | `7.0.10`, `8.0.0` |
-| **Alpine Linux** | 3.19 | 3.20 | `ALPINE_VERSION` | `3.19`, `3.18` |
-| **Rust** | 1.70.0 | 1.78.0 | `RUST_VERSION` | `1.70.0`, `1.78.0` |
-| **Image Tag** | 7.0.11 | 8.0.0 | `TAG` | `latest`, `custom` |
+| Component | Default | Control Method | Example |
+|-----------|---------|----------------|---------|
+| **Suricata** | 8.0.0 | `SURICATA_VERSION` | `7.0.6`, `6.0.14` |
+| **Alpine Linux** | 3.20 | `ALPINE_VERSION` | `3.19`, `3.18` |
+| **Image Tag** | 8.0.0 | `TAG` | `latest`, `custom` |
 
 ### Version Compatibility Notes
 
-- **Suricata 7.x** (default): Compatible with Alpine 3.18+, uses Rust 1.70.0
 - **Suricata 8.x**: Requires Alpine 3.20+ for Rust 1.78.0 support
-- **Suricata 6.x**: Compatible with Alpine 3.16+ (legacy, not supported)
+- **Suricata 7.x**: Compatible with Alpine 3.18+
+- **Suricata 6.x**: Compatible with Alpine 3.16+
 
 Always test version combinations before production deployment.
 
