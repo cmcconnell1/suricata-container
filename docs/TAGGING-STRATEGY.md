@@ -42,23 +42,28 @@ git push origin v8.0.1
 
 ## Docker Hub Tagging Strategy
 
+### Repository Information
+- **Docker Registry**: `cis-devops/suricata`
+- **Source Repository**: Bitbucket (https://bitbucket.org/cis-devops/suricata-container)
+- **CI/CD**: CircleCI with automated publishing
+
 ### Suricata 7.x Tags (from main branch - DEFAULT)
 
 | Tag | Description | Example | Usage |
 |-----|-------------|---------|-------|
-| `latest` | Latest stable 7.x | `suricata:latest` | Production (stable default) |
-| `7` | Latest 7.x version | `suricata:7` | Production (7.x family) |
-| `7.0.11` | Specific version | `suricata:7.0.11` | Pinned deployments |
-| `{commit}` | Specific commit | `suricata:a1b2c3d` | Development/testing |
+| `latest` | Latest stable 7.x | `cis-devops/suricata:latest` | Production (stable default) |
+| `7` | Latest 7.x version | `cis-devops/suricata:7` | Production (7.x family) |
+| `7.0.11` | Specific version | `cis-devops/suricata:7.0.11` | Pinned deployments |
+| `{commit}` | Specific commit | `cis-devops/suricata:a1b2c3d` | Development/testing |
 
 ### Suricata 8.x Tags (from suricata-8.x branch)
 
 | Tag | Description | Example | Usage |
 |-----|-------------|---------|-------|
-| `8-latest` | Latest 8.x | `suricata:8-latest` | Production (latest features) |
-| `8` | Latest 8.x version | `suricata:8` | Production (8.x family) |
-| `8.0.0` | Specific version | `suricata:8.0.0` | Pinned deployments |
-| `{commit}` | Specific commit | `suricata:b4c5d6e` | Development/testing |
+| `8-latest` | Latest 8.x | `cis-devops/suricata:8-latest` | Production (latest features) |
+| `8` | Latest 8.x version | `cis-devops/suricata:8` | Production (8.x family) |
+| `8.0.0` | Specific version | `cis-devops/suricata:8.0.0` | Pinned deployments |
+| `{commit}` | Specific commit | `cis-devops/suricata:b4c5d6e` | Development/testing |
 
 ### Legacy 7.x Tags (from suricata-7.x branch)
 
@@ -74,19 +79,19 @@ git push origin v8.0.1
 
 ```bash
 # Stable 7.x (recommended for production)
-docker pull username/suricata:latest
-docker pull username/suricata:7
+docker pull cis-devops/suricata:latest
+docker pull cis-devops/suricata:7
 
 # Latest 8.x features
-docker pull username/suricata:8-latest
-docker pull username/suricata:8
+docker pull cis-devops/suricata:8-latest
+docker pull cis-devops/suricata:8
 
 # Specific versions (recommended for production)
-docker pull username/suricata:7.0.11
-docker pull username/suricata:8.0.0
+docker pull cis-devops/suricata:7.0.11
+docker pull cis-devops/suricata:8.0.0
 
 # Development/testing
-docker pull username/suricata:a1b2c3d
+docker pull cis-devops/suricata:a1b2c3d
 ```
 
 ### Docker Run Commands
@@ -95,17 +100,17 @@ docker pull username/suricata:a1b2c3d
 # Run stable 7.x (default)
 docker run -d --name suricata-stable \
   --cap-add=NET_ADMIN --cap-add=NET_RAW \
-  username/suricata:latest
+  cis-devops/suricata:latest
 
 # Run latest 8.x features
 docker run -d --name suricata-latest \
   --cap-add=NET_ADMIN --cap-add=NET_RAW \
-  username/suricata:8-latest
+  cis-devops/suricata:8-latest
 
 # Run specific version
 docker run -d --name suricata-pinned \
   --cap-add=NET_ADMIN --cap-add=NET_RAW \
-  username/suricata:7.0.11
+  cis-devops/suricata:7.0.11
 ```
 
 ## CI/CD Integration
@@ -116,23 +121,31 @@ The CI/CD pipeline automatically creates Docker tags based on the branch:
 
 ```yaml
 # Main branch (7.x) creates:
-- username/suricata:7.0.11
-- username/suricata:7
-- username/suricata:latest
-- username/suricata:{commit-hash}
+- cis-devops/suricata:7.0.11
+- cis-devops/suricata:7
+- cis-devops/suricata:latest
+- cis-devops/suricata:{commit-hash}
 
 # Suricata-8.x branch creates:
-- username/suricata:8.0.0
-- username/suricata:8
-- username/suricata:8-latest
-- username/suricata:{commit-hash}
+- cis-devops/suricata:8.0.0
+- cis-devops/suricata:8
+- cis-devops/suricata:8-latest
+- cis-devops/suricata:{commit-hash}
 
 # Suricata-7.x branch (legacy) creates:
-- username/suricata:7.0.11
-- username/suricata:7
-- username/suricata:7-latest
-- username/suricata:{commit-hash}
+- cis-devops/suricata:7.0.11
+- cis-devops/suricata:7
+- cis-devops/suricata:7-latest
+- cis-devops/suricata:{commit-hash}
 ```
+
+## Published Images
+
+Successfully built images are available at:
+- **Latest Stable**: `cis-devops/suricata:latest` (7.x)
+- **Latest Features**: `cis-devops/suricata:8-latest` (8.x)
+- **Specific Versions**: `cis-devops/suricata:7.0.11`, `cis-devops/suricata:8.0.0`
+- **Commit-based**: `cis-devops/suricata:<commit-hash>`
 
 ## Version Lifecycle Management
 

@@ -11,8 +11,10 @@
 #
 # Required Environment Variables (set in CircleCI project settings):
 # - SSH_KEY_FINGERPRINT: SSH key fingerprint for Bitbucket repository access
-# - DOCKERHUB_USERNAME: Docker Hub username for image publishing
-# - DOCKERHUB_PASSWORD: Docker Hub password/token for image publishing
+# TODO: Refactor to push to AWS ECR using CircleCI orb
+# - AWS_ACCESS_KEY_ID: AWS access key for ECR publishing
+# - AWS_SECRET_ACCESS_KEY: AWS secret key for ECR publishing
+# - AWS_DEFAULT_REGION: AWS region for ECR repository
 # =============================================================================
 
 version: 2.1
@@ -102,6 +104,11 @@ jobs:
           root: workspace
           paths:
             - suricata.tar
+      - store_artifacts:
+          path: workspace/suricata.tar
+          destination: container-images/suricata-${CIRCLE_SHA1:0:7}.tar
+          # CircleCI retains artifacts for 30 days by default
+          # This allows keeping the last 5-10 container images as artifacts
 
   scan:
     executor: suricata-builder
@@ -144,73 +151,101 @@ jobs:
       - run:
           name: Load image
           command: docker load -i workspace/suricata.tar
+      # TODO: Refactor to push to AWS ECR using CircleCI orb
+      # Reference: https://circleci.com/developer/orbs/orb/circleci/aws-ecr
+      # COMMENTED OUT: Docker Hub login (to be replaced with AWS ECR)
+      # - run:
+      #     name: Login to Docker Hub
+      #     command: |
+      #       echo "$DOCKERHUB_PASSWORD" | docker login -u "$DOCKERHUB_USERNAME" --password-stdin
+      # COMMENTED OUT: Docker Hub tag and push (to be replaced with AWS ECR)
+      # - run:
+      #     name: Tag and push image
+      #     command: |
+      #       # Determine version and tags based on branch
+      #       if [ "$CIRCLE_BRANCH" = "main" ]; then
+      #         # Main branch now defaults to Suricata 7.x (stable)
+      #         VERSION_TAG="7.0.11"
+      #         MAJOR_TAG="7"
+      #         LATEST_TAG="latest"
+      #       elif [ "$CIRCLE_BRANCH" = "suricata-8.x" ]; then
+      #         # Suricata 8.x branch (latest features)
+      #         VERSION_TAG="8.0.0"
+      #         MAJOR_TAG="8"
+      #         LATEST_TAG="8-latest"
+      #       elif [ "$CIRCLE_BRANCH" = "suricata-7.x" ]; then
+      #         # Legacy 7.x branch (same as main)
+      #         VERSION_TAG="7.0.11"
+      #         MAJOR_TAG="7"
+      #         LATEST_TAG="7-latest"
+      #       else
+      #         echo "Unknown branch: $CIRCLE_BRANCH"
+      #         exit 1
+      #       fi
+      #
+      #       # Tag the image with multiple tags
+      #       docker tag suricata:latest cis-devops/suricata:$VERSION_TAG
+      #       docker tag suricata:latest cis-devops/suricata:$MAJOR_TAG
+      #       docker tag suricata:latest cis-devops/suricata:$LATEST_TAG
+      #       docker tag suricata:latest cis-devops/suricata:${CIRCLE_SHA1:0:7}
+      #
+      #       # Push all tags
+      #       docker push cis-devops/suricata:$VERSION_TAG
+      #       docker push cis-devops/suricata:$MAJOR_TAG
+      #       docker push cis-devops/suricata:$LATEST_TAG
+      #       docker push cis-devops/suricata:${CIRCLE_SHA1:0:7}
+      #
+      #       echo "Pushed tags: $VERSION_TAG, $MAJOR_TAG, $LATEST_TAG, ${CIRCLE_SHA1:0:7}"
+
       - run:
-          name: Login to Docker Hub
+          name: Placeholder for AWS ECR push
           command: |
-            echo "$DOCKERHUB_PASSWORD" | docker login -u "$DOCKERHUB_USERNAME" --password-stdin
-      - run:
-          name: Tag and push image
-          command: |
-            # Determine version and tags based on branch
-            if [ "$CIRCLE_BRANCH" = "main" ]; then
-              VERSION_TAG="8.0.0"
-              MAJOR_TAG="8"
-              LATEST_TAG="latest"
-            elif [ "$CIRCLE_BRANCH" = "suricata-7.x" ]; then
-              VERSION_TAG="7.0.11"
-              MAJOR_TAG="7"
-              LATEST_TAG="7-latest"
-            else
-              echo "Unknown branch: $CIRCLE_BRANCH"
-              exit 1
-            fi
-
-            # Tag the image with multiple tags
-            docker tag suricata:latest $DOCKERHUB_USERNAME/suricata:$VERSION_TAG
-            docker tag suricata:latest $DOCKERHUB_USERNAME/suricata:$MAJOR_TAG
-            docker tag suricata:latest $DOCKERHUB_USERNAME/suricata:$LATEST_TAG
-            docker tag suricata:latest $DOCKERHUB_USERNAME/suricata:${CIRCLE_SHA1:0:7}
-
-            # Push all tags
-            docker push $DOCKERHUB_USERNAME/suricata:$VERSION_TAG
-            docker push $DOCKERHUB_USERNAME/suricata:$MAJOR_TAG
-            docker push $DOCKERHUB_USERNAME/suricata:$LATEST_TAG
-            docker push $DOCKERHUB_USERNAME/suricata:${CIRCLE_SHA1:0:7}
-
-            echo "Pushed tags: $VERSION_TAG, $MAJOR_TAG, $LATEST_TAG, ${CIRCLE_SHA1:0:7}"
+            echo "Container image built and ready for deployment"
+            echo "TODO: Implement AWS ECR push using CircleCI orb"
+            echo "Image available as artifact: suricata-${CIRCLE_SHA1:0:7}.tar"
+            echo "Branch: $CIRCLE_BRANCH"
+            echo "Commit: ${CIRCLE_SHA1:0:7}"
 
 workflows:
   version: 2
-  # Main workflow for Suricata 8.x (main branch)
-  build_scan_deploy_8x:
+  # Main workflow for Suricata 7.x (main branch - default/stable)
+  build_scan_deploy_7x:
     jobs:
-      - build:
-          name: build-8x
+      - build
       - scan:
-          name: scan-8x
           requires:
-            - build-8x
+            - build
       - push:
-          name: push-8x
           requires:
-            - scan-8x
+            - scan
           filters:
             branches:
               only: main
 
-  # Workflow for Suricata 7.x (suricata-7.x branch)
-  build_scan_deploy_7x:
+  # Workflow for Suricata 8.x (suricata-8.x branch - latest features)
+  build_scan_deploy_8x:
     jobs:
-      - build:
-          name: build-7x
+      - build
       - scan:
-          name: scan-7x
           requires:
-            - build-7x
+            - build
       - push:
-          name: push-7x
           requires:
-            - scan-7x
+            - scan
+          filters:
+            branches:
+              only: suricata-8.x
+
+  # Legacy workflow for Suricata 7.x (suricata-7.x branch - same as main)
+  build_scan_deploy_7x_legacy:
+    jobs:
+      - build
+      - scan:
+          requires:
+            - build
+      - push:
+          requires:
+            - scan
           filters:
             branches:
               only: suricata-7.x
