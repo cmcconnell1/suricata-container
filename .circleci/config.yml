@@ -151,14 +151,45 @@ jobs:
       - run:
           name: Tag and push image
           command: |
-            docker tag suricata:latest $DOCKERHUB_USERNAME/suricata:latest
+            # Determine version and tags based on branch
+            if [ "$CIRCLE_BRANCH" = "main" ]; then
+              # Main branch now defaults to Suricata 7.x (stable)
+              VERSION_TAG="7.0.11"
+              MAJOR_TAG="7"
+              LATEST_TAG="latest"
+            elif [ "$CIRCLE_BRANCH" = "suricata-8.x" ]; then
+              # Suricata 8.x branch (latest features)
+              VERSION_TAG="8.0.0"
+              MAJOR_TAG="8"
+              LATEST_TAG="8-latest"
+            elif [ "$CIRCLE_BRANCH" = "suricata-7.x" ]; then
+              # Legacy 7.x branch (same as main)
+              VERSION_TAG="7.0.11"
+              MAJOR_TAG="7"
+              LATEST_TAG="7-latest"
+            else
+              echo "Unknown branch: $CIRCLE_BRANCH"
+              exit 1
+            fi
+
+            # Tag the image with multiple tags
+            docker tag suricata:latest $DOCKERHUB_USERNAME/suricata:$VERSION_TAG
+            docker tag suricata:latest $DOCKERHUB_USERNAME/suricata:$MAJOR_TAG
+            docker tag suricata:latest $DOCKERHUB_USERNAME/suricata:$LATEST_TAG
             docker tag suricata:latest $DOCKERHUB_USERNAME/suricata:${CIRCLE_SHA1:0:7}
-            docker push $DOCKERHUB_USERNAME/suricata:latest
+
+            # Push all tags
+            docker push $DOCKERHUB_USERNAME/suricata:$VERSION_TAG
+            docker push $DOCKERHUB_USERNAME/suricata:$MAJOR_TAG
+            docker push $DOCKERHUB_USERNAME/suricata:$LATEST_TAG
             docker push $DOCKERHUB_USERNAME/suricata:${CIRCLE_SHA1:0:7}
+
+            echo "Pushed tags: $VERSION_TAG, $MAJOR_TAG, $LATEST_TAG, ${CIRCLE_SHA1:0:7}"
 
 workflows:
   version: 2
-  build_scan_deploy:
+  # Main workflow for Suricata 7.x (main branch - default/stable)
+  build_scan_deploy_7x:
     jobs:
       - build
       - scan:
@@ -170,3 +201,31 @@ workflows:
           filters:
             branches:
               only: main
+
+  # Workflow for Suricata 8.x (suricata-8.x branch - latest features)
+  build_scan_deploy_8x:
+    jobs:
+      - build
+      - scan:
+          requires:
+            - build
+      - push:
+          requires:
+            - scan
+          filters:
+            branches:
+              only: suricata-8.x
+
+  # Legacy workflow for Suricata 7.x (suricata-7.x branch - same as main)
+  build_scan_deploy_7x_legacy:
+    jobs:
+      - build
+      - scan:
+          requires:
+            - build
+      - push:
+          requires:
+            - scan
+          filters:
+            branches:
+              only: suricata-7.x

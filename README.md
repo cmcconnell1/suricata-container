@@ -17,8 +17,8 @@ A production-ready Docker container for running Suricata IDS/IPS with the latest
 
 ## Features
 
-- **Alpine Linux 3.20** base for minimal footprint and security (~309MB final image)
-- **Suricata 8.0.0** (latest stable, July 2025) built from source with full Rust 1.78.0 support
+- **Alpine Linux 3.19** base for minimal footprint and security (~309MB final image)
+- **Suricata 7.0.11** (stable default, July 2025) built from source with full Rust 1.70.0 support
 - **Modern Security Features**: JA3/JA4 fingerprinting, HTTP/2 support, TLS analysis, enhanced detection
 - **Fully Working suricata-update** - All Python dependencies resolved, rule management working perfectly
 - **Automatic rule updates** via suricata-update integration with comprehensive testing
@@ -178,6 +178,41 @@ make all
 make clean
 ```
 
+## Multi-Version Support
+
+This project supports both **Suricata 7.x** (stable/default) and **Suricata 8.x** (latest) using a branching strategy:
+
+### Branch Structure
+- **`main` branch** → Suricata 7.x (stable/default: 7.0.11)
+- **`suricata-8.x` branch** → Suricata 8.x (latest: 8.0.0)
+- **`suricata-7.x` branch** → Suricata 7.x (legacy branch, same as main)
+
+### Quick Start by Version
+
+#### Suricata 7.x (Default/Stable)
+```bash
+git checkout main
+make build
+make test
+```
+
+#### Suricata 8.x (Latest Features)
+```bash
+git checkout suricata-8.x
+make build
+make test
+```
+
+### Docker Hub Tags
+| Tag | Description | Branch | Usage |
+|-----|-------------|--------|-------|
+| `latest` | Latest Suricata 7.x | main | Production (stable) |
+| `7`, `7.0.11` | Suricata 7.x versions | main | Production (7.x family) |
+| `8-latest` | Latest Suricata 8.x | suricata-8.x | Production (latest features) |
+| `8`, `8.0.0` | Suricata 8.x versions | suricata-8.x | Production (8.x family) |
+
+**Detailed Documentation**: See [docs/MULTI-VERSION.md](docs/MULTI-VERSION.md) and [docs/TAGGING-STRATEGY.md](docs/TAGGING-STRATEGY.md)
+
 ## Version Control
 
 ### Controlling Component Versions
@@ -212,22 +247,23 @@ make test
 
 #### Method 3: Modify Configuration Files
 For permanent changes, update version values in:
-- **Dockerfile**: `ARG SURICATA_VERSION=8.0.0` (line 33)
-- **Makefile**: `SURICATA_VERSION ?= 8.0.0` (line 4)
+- **Dockerfile**: `ARG SURICATA_VERSION=7.0.11` (line 70)
+- **Makefile**: `SURICATA_VERSION ?= 7.0.11` (line 16)
 
 ### Available Version Controls
 
-| Component | Default | Control Method | Example |
-|-----------|---------|----------------|---------|
-| **Suricata** | 8.0.0 | `SURICATA_VERSION` | `7.0.6`, `6.0.14` |
-| **Alpine Linux** | 3.20 | `ALPINE_VERSION` | `3.19`, `3.18` |
-| **Image Tag** | 8.0.0 | `TAG` | `latest`, `custom` |
+| Component | Main Branch (7.x) | Suricata-8.x Branch | Control Method | Example |
+|-----------|-------------------|---------------------|----------------|---------|
+| **Suricata** | 7.0.11 | 8.0.0 | `SURICATA_VERSION` | `7.0.10`, `8.0.0` |
+| **Alpine Linux** | 3.19 | 3.20 | `ALPINE_VERSION` | `3.19`, `3.18` |
+| **Rust** | 1.70.0 | 1.78.0 | `RUST_VERSION` | `1.70.0`, `1.78.0` |
+| **Image Tag** | 7.0.11 | 8.0.0 | `TAG` | `latest`, `custom` |
 
 ### Version Compatibility Notes
 
+- **Suricata 7.x** (default): Compatible with Alpine 3.18+, uses Rust 1.70.0
 - **Suricata 8.x**: Requires Alpine 3.20+ for Rust 1.78.0 support
-- **Suricata 7.x**: Compatible with Alpine 3.18+
-- **Suricata 6.x**: Compatible with Alpine 3.16+
+- **Suricata 6.x**: Compatible with Alpine 3.16+ (legacy, not supported)
 
 Always test version combinations before production deployment.
 
