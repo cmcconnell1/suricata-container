@@ -5,14 +5,18 @@
 # using Alpine Linux for minimal footprint and maximum security.
 #
 # Build Arguments (can be overridden at build time):
-# - ALPINE_VERSION: Base Alpine Linux version (default: 3.20)
-# - SURICATA_VERSION: Suricata version to build (default: 8.0.0)
-# - RUST_VERSION: Rust compiler version (default: 1.78.0)
-# - PYTHON_VERSION: Python version for suricata-update (default: 3.12)
+# - ALPINE_VERSION: Base Alpine Linux version (default: 3.19)
+# - SURICATA_VERSION: Suricata version to build (default: 7.0.11)
+# - RUST_VERSION: Rust compiler version (default: 1.70.0)
+# - PYTHON_VERSION: Python version for suricata-update (default: 3.11)
 #
 # Usage:
 #   docker build -f docker/Dockerfile -t suricata .
-#   docker build --build-arg SURICATA_VERSION=7.0.6 -f docker/Dockerfile -t suricata:7.0.6 .
+#   docker build --build-arg SURICATA_VERSION=8.0.0 -f docker/Dockerfile -t suricata:8.0.0 .
+#
+# Multi-Version Support:
+#   Main branch (default): Suricata 7.x (stable)
+#   suricata-8.x branch: Suricata 8.x (latest features)
 # =============================================================================
 
 # -----------------------------------------------------------------------------
@@ -20,7 +24,7 @@
 # -----------------------------------------------------------------------------
 # This stage contains all build dependencies and compiles Suricata.
 # The compiled binaries will be copied to the runtime stage.
-ARG ALPINE_VERSION=3.20
+ARG ALPINE_VERSION=3.19
 FROM alpine:${ALPINE_VERSION} AS builder
 
 # Install build dependencies
@@ -67,44 +71,24 @@ RUN apk add --no-cache \
 # SURICATA COMPILATION: Download, configure, and build Suricata from source
 # -----------------------------------------------------------------------------
 # Download and compile Suricata with optimized settings for container deployment
-ARG SURICATA_VERSION=8.0.0
-ARG RUST_VERSION=1.78.0
-ARG PYTHON_VERSION=3.12
-
-# Version compatibility validation
-RUN echo "Building Suricata ${SURICATA_VERSION} with Alpine ${ALPINE_VERSION}" && \
-    echo "Rust version: ${RUST_VERSION}, Python version: ${PYTHON_VERSION}" && \
-    # Validate version compatibility
-    if [ "${SURICATA_VERSION%%.*}" = "8" ] && [ "${ALPINE_VERSION}" \< "3.20" ]; then \
-        echo "ERROR: Suricata 8.x requires Alpine 3.20+ for Rust 1.78.0+ support" && exit 1; \
-    fi && \
-    if [ "${SURICATA_VERSION%%.*}" = "7" ] && [ "${ALPINE_VERSION}" \< "3.19" ]; then \
-        echo "ERROR: Suricata 7.x requires Alpine 3.19+ for Rust 1.70.0+ support" && exit 1; \
-    fi
+ARG SURICATA_VERSION=7.0.11
+ARG RUST_VERSION=1.70.0
+ARG PYTHON_VERSION=3.11
 RUN mkdir -p /usr/src/suricata && \
     cd /usr/src/suricata && \
     # Download and extract Suricata source code
     curl -L https://www.openinfosecfoundation.org/download/suricata-${SURICATA_VERSION}.tar.gz | tar xz --strip-components=1 && \
     # Configure build with container-optimized settings
-    # Base configuration for all versions
-    CONFIGURE_OPTS="--prefix=/usr --sysconfdir=/etc --localstatedir=/var \
+    ./configure --prefix=/usr --sysconfdir=/etc --localstatedir=/var \
+        # Disable features not needed in containers
         --disable-lua \
         --disable-gccmarch-native \
         --disable-geoip \
         --disable-hiredis \
+        # Enable modern features
         --enable-rust \
         --enable-revision \
-        --with-revision=${SURICATA_VERSION}-release" && \
-    # Version-specific configuration adjustments
-    if [ "${SURICATA_VERSION%%.*}" = "8" ]; then \
-        # Suricata 8.x specific features
-        CONFIGURE_OPTS="$CONFIGURE_OPTS --enable-http2-decompression --enable-ja4"; \
-    elif [ "${SURICATA_VERSION%%.*}" = "7" ]; then \
-        # Suricata 7.x specific features (more conservative)
-        CONFIGURE_OPTS="$CONFIGURE_OPTS --enable-ja3"; \
-    fi && \
-    echo "Configure options: $CONFIGURE_OPTS" && \
-    ./configure $CONFIGURE_OPTS && \
+        --with-revision="${SURICATA_VERSION}-release" && \
     # Compile Suricata (this takes several minutes)
     make && \
     # Install binaries, configs, and rules
@@ -162,24 +146,14 @@ RUN apk add --no-cache \
 COPY --from=builder /usr/bin/suricata /usr/bin/suricata
 COPY --from=builder /usr/bin/suricatasc /usr/bin/suricatasc
 COPY --from=builder /usr/bin/suricata-update /usr/bin/suricata-update
-# Copy default Suricata configuration and HTTP library
+# Copy default Suricata configuration
 COPY --from=builder /etc/suricata /etc/suricata
-COPY --from=builder /usr/lib/libhtp* /usr/lib/
 
 # -----------------------------------------------------------------------------
-# PYTHON DEPENDENCIES: Copy packages needed for suricata-update
+# PYTHON DEPENDENCIES: Install suricata-update in runtime stage
 # -----------------------------------------------------------------------------
-# These Python packages are required for suricata-update to function properly
-# We copy them explicitly to ensure all dependencies are available
-COPY --from=builder /usr/lib/python3.12/site-packages/suricata /usr/lib/python3.12/site-packages/suricata
-COPY --from=builder /usr/lib/python3.12/site-packages/suricata_update-1.3.3.dist-info /usr/lib/python3.12/site-packages/suricata_update-1.3.3.dist-info
-COPY --from=builder /usr/lib/python3.12/site-packages/yaml /usr/lib/python3.12/site-packages/yaml
-COPY --from=builder /usr/lib/python3.12/site-packages/PyYAML-6.0.1.dist-info /usr/lib/python3.12/site-packages/PyYAML-6.0.1.dist-info
-COPY --from=builder /usr/lib/python3.12/site-packages/_yaml /usr/lib/python3.12/site-packages/_yaml
-COPY --from=builder /usr/lib/python3.12/site-packages/packaging /usr/lib/python3.12/site-packages/packaging
-COPY --from=builder /usr/lib/python3.12/site-packages/packaging-24.0.dist-info /usr/lib/python3.12/site-packages/packaging-24.0.dist-info
-COPY --from=builder /usr/lib/python3.12/site-packages/pyparsing /usr/lib/python3.12/site-packages/pyparsing
-COPY --from=builder /usr/lib/python3.12/site-packages/pyparsing-3.1.2.dist-info /usr/lib/python3.12/site-packages/pyparsing-3.1.2.dist-info
+# Install suricata-update directly in the runtime stage to avoid version conflicts
+RUN pip3 install --break-system-packages suricata-update
 
 # -----------------------------------------------------------------------------
 # CONTAINER SETUP: Create directories and copy configuration
