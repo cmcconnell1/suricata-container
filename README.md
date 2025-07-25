@@ -12,7 +12,7 @@ CIS Albert Suricata Docker container IDS/IPS with **Suricata 7.x as the stable d
 - [Configuration](#configuration)
 - [Building and Testing](#building-and-testing)
 - [CI/CD Pipeline](#cicd-pipeline)
-- [Published Images](#published-images)
+- [Getting Built Images](#getting-built-images)
 - [Documentation](#documentation)
 - [Development](#development)
 - [Troubleshooting](#troubleshooting)
@@ -297,13 +297,40 @@ The CircleCI pipeline automatically:
 - **suricata-8.x branch** → Builds Suricata 8.x (tags: `8-latest`, `8`, `8.0.0`)
 - **suricata-7.x branch** → Builds Suricata 7.x (tags: `7-latest`)
 
-## Published Images
+## Getting Built Images
 
-Successfully built images are available at:
-- **Latest Stable**: `cis-devops/suricata:latest` (7.x - **Recommended**)
-- **Future Features**: `cis-devops/suricata:8-latest` (8.x - Advanced)
-- **Specific Versions**: `cis-devops/suricata:7.0.11`, `cis-devops/suricata:8.0.0`
-- **Commit-based**: `cis-devops/suricata:<commit-hash>`
+### CircleCI Artifacts (Current Method)
+
+Successfully built Docker images are available as **CircleCI artifacts** with 30-day retention:
+
+#### **Download from CircleCI Web UI**
+1. Go to [CircleCI Project](https://circleci.com/gh/your-org/suricata-container)
+2. Select the desired build from your target branch:
+   - **main branch**: Suricata 7.x (stable, recommended)
+   - **suricata-8.x branch**: Suricata 8.x (latest features)
+   - **suricata-7.x branch**: Suricata 7.x (legacy)
+3. Click on the **Artifacts** tab
+4. Download the `.tar` file (e.g., `suricata-v7.0.11-main-stable-a1b2c3d.tar`)
+
+#### **Load and Use the Image**
+```bash
+# Load the downloaded image
+docker load -i suricata-v7.0.11-main-stable-a1b2c3d.tar
+
+# Verify the loaded image
+docker images | grep suricata
+
+# Run the container
+docker run -d --name suricata --cap-add=NET_ADMIN --cap-add=NET_RAW suricata:latest -i eth0
+```
+
+#### **Available Artifact Types**
+- **Docker Image**: `suricata-v{version}-{branch}-{commit}.tar`
+- **Build Metadata**: `suricata-v{version}-{branch}-{commit}-info.json`
+
+### Future: AWS ECR Registry (Planned)
+
+**Note**: This project will be refactored to push images to AWS ECR for easier access. Until then, CircleCI artifacts provide reliable access to all built images.
 
 ### Image Information
 
@@ -402,17 +429,28 @@ Always test version combinations before production deployment.
 
 The project includes a complete CircleCI pipeline that:
 
-1. **Builds** the Docker image with layer caching
-2. **Tests** the built image functionality
+1. **Builds** the Docker image with multi-stage optimization and layer caching
+2. **Tests** the built image functionality (version check, suricata-update, configuration)
 3. **Scans** for security vulnerabilities using Trivy
-4. **Pushes** to container registry (e.g. currently Docker Hub) on successful builds (main branch only)
+4. **Stores** Docker images as CircleCI artifacts with 30-day retention
+
+### Pipeline Features
+
+- **Multi-Version Support**: Automatic version detection based on branch
+- **Smart Naming**: Version-specific artifact names with metadata
+- **Build Information**: JSON metadata with version, size, and commit details
+- **Security Scanning**: Trivy vulnerability scanning with CRITICAL exit codes
+- **Artifact Retention**: 30-day storage for recent builds
 
 ### Setup CI/CD
 
 1. Connect your repository to CircleCI
 2. Set environment variables:
-   - `DOCKERHUB_USERNAME` - Your Docker Hub username
-   - `DOCKERHUB_PASSWORD` - Your Docker Hub access token
+   - `SSH_KEY_FINGERPRINT` - SSH key fingerprint for repository access
+
+### Accessing Built Images
+
+Images are stored as CircleCI artifacts (see [Getting Built Images](#getting-built-images) section above).
 
 ## Environment Variables
 
