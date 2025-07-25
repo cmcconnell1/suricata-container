@@ -185,12 +185,12 @@ jobs:
       # Store Docker image as artifact with version-specific naming
       - store_artifacts:
           path: workspace/suricata.tar
-          destination: container-images/suricata-v${VERSION:-unknown}-${CIRCLE_BRANCH}-${CIRCLE_SHA1:0:7}.tar
+          destination: container-images/suricata-${CIRCLE_BRANCH}-${CIRCLE_SHA1:0:7}.tar
 
       # Store build metadata as artifact
       - store_artifacts:
           path: workspace/build-info.json
-          destination: container-images/suricata-v${VERSION:-unknown}-${CIRCLE_BRANCH}-${CIRCLE_SHA1:0:7}-info.json
+          destination: container-images/suricata-${CIRCLE_BRANCH}-${CIRCLE_SHA1:0:7}-info.json
 
       # CircleCI retains artifacts for 30 days by default
       # This allows keeping the last 5-10 container images as artifacts
