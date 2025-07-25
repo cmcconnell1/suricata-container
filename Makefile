@@ -12,12 +12,12 @@
 # =============================================================================
 
 # Suricata version - update this when upgrading Suricata
-# Supported versions: 8.0.x (current), 7.0.x (stable), 6.0.x (legacy)
-SURICATA_VERSION ?= 8.0.0
+# Supported versions: 7.0.x (stable/default), 8.0.x (latest), 6.0.x (legacy)
+SURICATA_VERSION ?= 7.0.11
 
 # Alpine Linux base image version
-# Note: Suricata 8.x requires Alpine 3.20+ for Rust 1.78.0 support
-ALPINE_VERSION ?= 3.20
+# Note: Suricata 7.x uses Alpine 3.19, Suricata 8.x requires Alpine 3.20+ for Rust 1.78.0 support
+ALPINE_VERSION ?= 3.19
 
 # Docker image configuration
 IMAGE_NAME ?= suricata
