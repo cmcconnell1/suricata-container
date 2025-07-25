@@ -5,12 +5,18 @@
 # using Alpine Linux for minimal footprint and maximum security.
 #
 # Build Arguments (can be overridden at build time):
-# - ALPINE_VERSION: Base Alpine Linux version (default: 3.20)
-# - SURICATA_VERSION: Suricata version to build (default: 8.0.0)
+# - ALPINE_VERSION: Base Alpine Linux version (default: 3.19)
+# - SURICATA_VERSION: Suricata version to build (default: 7.0.11)
+# - RUST_VERSION: Rust compiler version (default: 1.70.0)
+# - PYTHON_VERSION: Python version for suricata-update (default: 3.11)
 #
 # Usage:
 #   docker build -f docker/Dockerfile -t suricata .
-#   docker build --build-arg SURICATA_VERSION=7.0.6 -f docker/Dockerfile -t suricata:7.0.6 .
+#   docker build --build-arg SURICATA_VERSION=8.0.0 -f docker/Dockerfile -t suricata:8.0.0 .
+#
+# Multi-Version Support:
+#   Main branch (default): Suricata 7.x (stable)
+#   suricata-8.x branch: Suricata 8.x (latest features)
 # =============================================================================
 
 # -----------------------------------------------------------------------------
@@ -18,7 +24,7 @@
 # -----------------------------------------------------------------------------
 # This stage contains all build dependencies and compiles Suricata.
 # The compiled binaries will be copied to the runtime stage.
-ARG ALPINE_VERSION=3.20
+ARG ALPINE_VERSION=3.19
 FROM alpine:${ALPINE_VERSION} AS builder
 
 # Install build dependencies
@@ -65,8 +71,9 @@ RUN apk add --no-cache \
 # SURICATA COMPILATION: Download, configure, and build Suricata from source
 # -----------------------------------------------------------------------------
 # Download and compile Suricata with optimized settings for container deployment
-ARG SURICATA_VERSION=8.0.0
-ARG RUST_VERSION=1.78.0
+ARG SURICATA_VERSION=7.0.11
+ARG RUST_VERSION=1.70.0
+ARG PYTHON_VERSION=3.11
 RUN mkdir -p /usr/src/suricata && \
     cd /usr/src/suricata && \
     # Download and extract Suricata source code
