@@ -81,7 +81,7 @@ RUN mkdir -p /usr/src/suricata && \
         # Enable modern features
         --enable-rust \
         --enable-revision \
-        --with-revision="8.0.0-release" && \
+        --with-revision="${SURICATA_VERSION}-release" && \
     # Compile Suricata (this takes several minutes)
     make && \
     # Install binaries, configs, and rules
