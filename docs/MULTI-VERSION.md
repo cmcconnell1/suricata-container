@@ -68,6 +68,14 @@ SURICATA_VERSION=8.0.1 make build
 | `8`, `8.0.0` | Suricata 8.x versions | suricata-8.x | 8.0.0 | Production (8.x family) |
 | `7-latest` | Legacy 7.x tag | suricata-7.x | 7.0.11 | Legacy compatibility |
 
+### Published Images
+
+Successfully built images are available at:
+- **Latest Stable**: `cis-devops/suricata:latest` (7.x)
+- **Latest Features**: `cis-devops/suricata:8-latest` (8.x)
+- **Specific Versions**: `cis-devops/suricata:7.0.11`, `cis-devops/suricata:8.0.0`
+- **Commit-based**: `cis-devops/suricata:<commit-hash>`
+
 ## Version Compatibility Matrix
 
 | Suricata Version | Alpine Version | Rust Version | Python Version | Status | Branch |
@@ -118,6 +126,11 @@ Some changes may only apply to one version:
 
 The CircleCI pipeline automatically builds both versions:
 
+### Repository Configuration
+- **Primary Repository**: Bitbucket (https://bitbucket.org/cis-devops/suricata-container)
+- **CI/CD**: CircleCI with Bitbucket integration
+- **Docker Registry**: Automated publishing to `cis-devops/suricata`
+
 ### Triggers
 - **main branch** → Builds and deploys Suricata 7.x (tags: `latest`, `7`, `7.0.11`)
 - **suricata-8.x branch** → Builds and deploys Suricata 8.x (tags: `8-latest`, `8`, `8.0.0`)
@@ -154,6 +167,28 @@ docker build --build-arg SURICATA_VERSION=7.0.11 \
              --build-arg RUST_VERSION=1.70.0 \
              --build-arg PYTHON_VERSION=3.11 \
              -f docker/Dockerfile -t suricata:7.0.11 .
+```
+
+## Docker Usage Examples
+
+### Pull and Run Commands
+
+```bash
+# Stable 7.x (default)
+docker pull cis-devops/suricata:latest
+docker run -d --name suricata-stable \
+  --cap-add=NET_ADMIN --cap-add=NET_RAW \
+  cis-devops/suricata:latest
+
+# Latest 8.x features
+docker pull cis-devops/suricata:8-latest
+docker run -d --name suricata-latest \
+  --cap-add=NET_ADMIN --cap-add=NET_RAW \
+  cis-devops/suricata:8-latest
+
+# Specific versions
+docker pull cis-devops/suricata:7.0.11
+docker pull cis-devops/suricata:8.0.0
 ```
 
 ## Maintenance Guidelines
@@ -212,14 +247,14 @@ make build
 
 ```bash
 # Suricata 7.x (stable/default)
-docker pull username/suricata:latest
-docker pull username/suricata:7
-docker pull username/suricata:7.0.11
+docker pull cis-devops/suricata:latest
+docker pull cis-devops/suricata:7
+docker pull cis-devops/suricata:7.0.11
 
 # Suricata 8.x (latest features)
-docker pull username/suricata:8-latest
-docker pull username/suricata:8
-docker pull username/suricata:8.0.0
+docker pull cis-devops/suricata:8-latest
+docker pull cis-devops/suricata:8
+docker pull cis-devops/suricata:8.0.0
 ```
 
 ## Troubleshooting
