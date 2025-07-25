@@ -164,16 +164,14 @@ jobs:
             docker save -o workspace/suricata.tar suricata:latest
 
             # Create metadata file for the artifact
-            cat > workspace/build-info.json << EOF
-            {
-              "version": "$VERSION",
-              "branch": "$CIRCLE_BRANCH",
-              "commit": "${CIRCLE_SHA1:0:7}",
-              "build_date": "$(date -u +%Y-%m-%dT%H:%M:%SZ)",
-              "artifact_name": "$ARTIFACT_NAME",
-              "image_size": "$(docker images suricata:latest --format 'table {{.Size}}' | tail -n 1)"
-            }
-            EOF
+            echo "{" > workspace/build-info.json
+            echo "  \"version\": \"$VERSION\"," >> workspace/build-info.json
+            echo "  \"branch\": \"$CIRCLE_BRANCH\"," >> workspace/build-info.json
+            echo "  \"commit\": \"${CIRCLE_SHA1:0:7}\"," >> workspace/build-info.json
+            echo "  \"build_date\": \"$(date -u +%Y-%m-%dT%H:%M:%SZ)\"," >> workspace/build-info.json
+            echo "  \"artifact_name\": \"$ARTIFACT_NAME\"," >> workspace/build-info.json
+            echo "  \"image_size\": \"$(docker images suricata:latest --format 'table {{.Size}}' | tail -n 1)\"" >> workspace/build-info.json
+            echo "}" >> workspace/build-info.json
 
             echo "Build metadata:"
             cat workspace/build-info.json
