@@ -107,9 +107,9 @@ Edit these files for permanent version changes:
 
 | Suricata Version | Minimum Alpine | Rust Support | Status |
 |------------------|----------------|--------------|--------|
-| 8.0.x | 3.20 | 1.78.0+ | ✅ Current |
-| 7.0.x | 3.18 | 1.70.0+ | ✅ Supported |
-| 6.0.x | 3.16 | 1.60.0+ | ⚠️ Legacy |
+| 8.0.x | 3.20 | 1.78.0+ | Current |
+| 7.0.x | 3.18 | 1.70.0+ | Supported |
+| 6.0.x | 3.16 | 1.60.0+ | Legacy |
 
 ### Version Testing
 Always test version combinations:
@@ -160,9 +160,9 @@ Edit these files for permanent version changes:
 
 | Suricata Version | Minimum Alpine | Rust Support | Status |
 |------------------|----------------|--------------|--------|
-| 8.0.x | 3.20 | 1.78.0+ | ✅ Current |
-| 7.0.x | 3.18 | 1.70.0+ | ✅ Supported |
-| 6.0.x | 3.16 | 1.60.0+ | ⚠️ Legacy |
+| 8.0.x | 3.20 | 1.78.0+ | Current |
+| 7.0.x | 3.18 | 1.70.0+ | Supported |
+| 6.0.x | 3.16 | 1.60.0+ | Legacy |
 
 ### Version Testing
 Always test version combinations:
