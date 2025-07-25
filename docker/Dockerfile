@@ -7,6 +7,8 @@
 # Build Arguments (can be overridden at build time):
 # - ALPINE_VERSION: Base Alpine Linux version (default: 3.20)
 # - SURICATA_VERSION: Suricata version to build (default: 8.0.0)
+# - RUST_VERSION: Rust compiler version (default: 1.78.0)
+# - PYTHON_VERSION: Python version for suricata-update (default: 3.12)
 #
 # Usage:
 #   docker build -f docker/Dockerfile -t suricata .
@@ -67,21 +69,42 @@ RUN apk add --no-cache \
 # Download and compile Suricata with optimized settings for container deployment
 ARG SURICATA_VERSION=8.0.0
 ARG RUST_VERSION=1.78.0
+ARG PYTHON_VERSION=3.12
+
+# Version compatibility validation
+RUN echo "Building Suricata ${SURICATA_VERSION} with Alpine ${ALPINE_VERSION}" && \
+    echo "Rust version: ${RUST_VERSION}, Python version: ${PYTHON_VERSION}" && \
+    # Validate version compatibility
+    if [ "${SURICATA_VERSION%%.*}" = "8" ] && [ "${ALPINE_VERSION}" \< "3.20" ]; then \
+        echo "ERROR: Suricata 8.x requires Alpine 3.20+ for Rust 1.78.0+ support" && exit 1; \
+    fi && \
+    if [ "${SURICATA_VERSION%%.*}" = "7" ] && [ "${ALPINE_VERSION}" \< "3.19" ]; then \
+        echo "ERROR: Suricata 7.x requires Alpine 3.19+ for Rust 1.70.0+ support" && exit 1; \
+    fi
 RUN mkdir -p /usr/src/suricata && \
     cd /usr/src/suricata && \
     # Download and extract Suricata source code
     curl -L https://www.openinfosecfoundation.org/download/suricata-${SURICATA_VERSION}.tar.gz | tar xz --strip-components=1 && \
     # Configure build with container-optimized settings
-    ./configure --prefix=/usr --sysconfdir=/etc --localstatedir=/var \
-        # Disable features not needed in containers
+    # Base configuration for all versions
+    CONFIGURE_OPTS="--prefix=/usr --sysconfdir=/etc --localstatedir=/var \
         --disable-lua \
         --disable-gccmarch-native \
         --disable-geoip \
         --disable-hiredis \
-        # Enable modern features
         --enable-rust \
         --enable-revision \
-        --with-revision="${SURICATA_VERSION}-release" && \
+        --with-revision=${SURICATA_VERSION}-release" && \
+    # Version-specific configuration adjustments
+    if [ "${SURICATA_VERSION%%.*}" = "8" ]; then \
+        # Suricata 8.x specific features
+        CONFIGURE_OPTS="$CONFIGURE_OPTS --enable-http2-decompression --enable-ja4"; \
+    elif [ "${SURICATA_VERSION%%.*}" = "7" ]; then \
+        # Suricata 7.x specific features (more conservative)
+        CONFIGURE_OPTS="$CONFIGURE_OPTS --enable-ja3"; \
+    fi && \
+    echo "Configure options: $CONFIGURE_OPTS" && \
+    ./configure $CONFIGURE_OPTS && \
     # Compile Suricata (this takes several minutes)
     make && \
     # Install binaries, configs, and rules

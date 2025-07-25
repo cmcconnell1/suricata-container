@@ -40,7 +40,7 @@ docker run --platform linux/amd64 --rm --cap-add=NET_ADMIN --cap-add=NET_RAW --e
 This is Suricata version 8.0.0 RELEASE
 ```
 
-**PASSED** - Suricata 8.0.0 running perfectly!
+**PASSED** 
 
 ---
 
@@ -101,8 +101,6 @@ docker run --cap-add=NET_ADMIN --cap-add=NET_RAW \
 
 ## Next Steps
 
-The container is **production-ready**! You can now:
-
 1. **Deploy to Production** - Use the provided examples
 2. **Customize Configuration** - Modify rules and settings
 3. **Set Up Monitoring** - Integrate with your logging system
@@ -124,7 +122,4 @@ All documentation has been updated to reflect the successful build:
 ---
 
 ## Final Status
-
-**SUCCESS!** The Suricata 8.0.0 container is successfully built, tested, and ready for production deployment with all modern security features and 2025 enhancements!
-
-**Ready for Production Use**
+The Suricata ver 8.0.0 container is successfully built, tested, and ready for deployment with all modern security features and 2025 enhancements.

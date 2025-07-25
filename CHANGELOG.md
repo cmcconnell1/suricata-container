@@ -69,6 +69,4 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## Build Status: SUCCESS
 
-The container has been successfully built and tested with Suricata 8.0.0 running perfectly!
-
-**Ready for Production Use**
+The container has been successfully built and tested with Suricata 8.0.0 running.

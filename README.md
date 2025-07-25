@@ -178,9 +178,43 @@ make all
 make clean
 ```
 
-## Version Control
+## Multi-Version Support
 
-### Controlling Component Versions
+This project supports both **Suricata 8.x** and **Suricata 7.x** using a branching strategy:
+
+### Branch Structure
+- **`main` branch** → Suricata 7.x (stable/default: 7.0.11)
+- **`suricata-8.x` branch** → Suricata 8.x (latest: 8.0.0)
+
+### Quick Start by Version
+
+#### Suricata 8.x (Recommended)
+```bash
+git checkout main
+make build
+make test
+```
+
+#### Suricata 7.x (Stable)
+```bash
+git checkout suricata-7.x
+make build
+make test
+```
+
+### Docker Hub Tags
+| Tag | Description | Branch | Usage |
+|-----|-------------|--------|-------|
+| `latest` | Latest Suricata 8.x | main | Production (latest features) |
+| `8`, `8.0.0` | Suricata 8.x versions | main | Production (8.x family) |
+| `7-latest` | Latest Suricata 7.x | suricata-7.x | Production (stable) |
+| `7`, `7.0.11` | Suricata 7.x versions | suricata-7.x | Production (7.x family) |
+
+**Detailed Documentation**: See [docs/MULTI-VERSION.md](docs/MULTI-VERSION.md) and [docs/TAGGING-STRATEGY.md](docs/TAGGING-STRATEGY.md)
+
+### Version Control
+
+#### Controlling Component Versions
 
 You can control the versions of Suricata and other components in several ways:
 
@@ -217,11 +251,30 @@ For permanent changes, update version values in:
 
 ### Available Version Controls
 
-| Component | Default | Control Method | Example |
-|-----------|---------|----------------|---------|
-| **Suricata** | 8.0.0 | `SURICATA_VERSION` | `7.0.6`, `6.0.14` |
-| **Alpine Linux** | 3.20 | `ALPINE_VERSION` | `3.19`, `3.18` |
-| **Image Tag** | 8.0.0 | `TAG` | `latest`, `custom` |
+| Component | Main Branch (8.x) | Suricata-7.x Branch | Control Method | Example |
+|-----------|-------------------|---------------------|----------------|---------|
+| **Suricata** | 8.0.0 | 7.0.11 | `SURICATA_VERSION` | `7.0.10`, `8.0.0` |
+| **Alpine Linux** | 3.20 | 3.19 | `ALPINE_VERSION` | `3.19`, `3.18` |
+| **Rust** | 1.78.0 | 1.70.0 | `RUST_VERSION` | `1.70.0`, `1.78.0` |
+| **Image Tag** | 8.0.0 | 7.0.11 | `TAG` | `latest`, `custom` |
+
+### Multi-Version Build Script
+
+Use the provided script to build both versions easily:
+
+```bash
+# Build both versions with testing
+./scripts/build-versions.sh --version both --test
+
+# Build only Suricata 7.x
+./scripts/build-versions.sh --version 7 --test
+
+# Build Suricata 8.x and tag as latest
+./scripts/build-versions.sh --version 8 --tag-latest --test
+
+# Build and push to Docker Hub
+./scripts/build-versions.sh --version both --test --push
+```
 
 ### Version Compatibility Notes
 

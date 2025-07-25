@@ -151,22 +151,66 @@ jobs:
       - run:
           name: Tag and push image
           command: |
-            docker tag suricata:latest $DOCKERHUB_USERNAME/suricata:latest
+            # Determine version and tags based on branch
+            if [ "$CIRCLE_BRANCH" = "main" ]; then
+              VERSION_TAG="8.0.0"
+              MAJOR_TAG="8"
+              LATEST_TAG="latest"
+            elif [ "$CIRCLE_BRANCH" = "suricata-7.x" ]; then
+              VERSION_TAG="7.0.11"
+              MAJOR_TAG="7"
+              LATEST_TAG="7-latest"
+            else
+              echo "Unknown branch: $CIRCLE_BRANCH"
+              exit 1
+            fi
+
+            # Tag the image with multiple tags
+            docker tag suricata:latest $DOCKERHUB_USERNAME/suricata:$VERSION_TAG
+            docker tag suricata:latest $DOCKERHUB_USERNAME/suricata:$MAJOR_TAG
+            docker tag suricata:latest $DOCKERHUB_USERNAME/suricata:$LATEST_TAG
             docker tag suricata:latest $DOCKERHUB_USERNAME/suricata:${CIRCLE_SHA1:0:7}
-            docker push $DOCKERHUB_USERNAME/suricata:latest
+
+            # Push all tags
+            docker push $DOCKERHUB_USERNAME/suricata:$VERSION_TAG
+            docker push $DOCKERHUB_USERNAME/suricata:$MAJOR_TAG
+            docker push $DOCKERHUB_USERNAME/suricata:$LATEST_TAG
             docker push $DOCKERHUB_USERNAME/suricata:${CIRCLE_SHA1:0:7}
+
+            echo "Pushed tags: $VERSION_TAG, $MAJOR_TAG, $LATEST_TAG, ${CIRCLE_SHA1:0:7}"
 
 workflows:
   version: 2
-  build_scan_deploy:
+  # Main workflow for Suricata 8.x (main branch)
+  build_scan_deploy_8x:
     jobs:
-      - build
+      - build:
+          name: build-8x
       - scan:
+          name: scan-8x
           requires:
-            - build
+            - build-8x
       - push:
+          name: push-8x
           requires:
-            - scan
+            - scan-8x
           filters:
             branches:
               only: main
+
+  # Workflow for Suricata 7.x (suricata-7.x branch)
+  build_scan_deploy_7x:
+    jobs:
+      - build:
+          name: build-7x
+      - scan:
+          name: scan-7x
+          requires:
+            - build-7x
+      - push:
+          name: push-7x
+          requires:
+            - scan-7x
+          filters:
+            branches:
+              only: suricata-7.x

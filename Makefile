@@ -12,7 +12,7 @@
 # =============================================================================
 
 # Suricata version - update this when upgrading Suricata
-# Supported versions: 8.0.x (current), 7.0.x (stable), 6.0.x (legacy)
+# Supported versions: 8.0.x (latest), 7.0.x (stable), 6.0.x (legacy)
 SURICATA_VERSION ?= 8.0.0
 
 # Alpine Linux base image version
