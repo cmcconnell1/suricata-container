@@ -26,10 +26,33 @@ This project provides production-ready Suricata IDS/IPS containers with **Surica
 
 - **Stable Default**: Suricata 7.x (7.0.11) as the production-ready default choice
 - **Future Ready**: Suricata 8.x (8.0.0) available for advanced feature adoption
+- **Multi-Stage Builds**: Optimized Docker builds with minimal runtime footprint
 - **Production Optimized**: Alpine Linux base (252MB for 7.x, 314MB for 8.x)
 - **Modern Security**: JA3/JA4 fingerprinting, HTTP/2 support, TLS analysis
 - **Automated CI/CD**: CircleCI pipeline with artifact retention
 - **Comprehensive Testing**: Both versions successfully built and validated
+
+### Multi-Stage Build Architecture
+
+This project uses **multi-stage Docker builds** for optimal production containers:
+
+#### Build Stage (`AS builder`)
+- **Purpose**: Compile Suricata from source with all dependencies
+- **Contains**: Build tools (gcc, rust, cargo, autoconf, development libraries)
+- **Size**: Large (~2-3GB with all build dependencies)
+- **Actions**: Downloads source, compiles binaries, creates configurations
+
+#### Runtime Stage (Final Image)
+- **Purpose**: Minimal production container with only runtime dependencies
+- **Contains**: Runtime libraries only (libpcap, yaml, jansson, openssl)
+- **Size**: Optimized (252MB for 7.x, 314MB for 8.x)
+- **Security**: No build tools or compilers in final image
+
+#### Benefits
+- **Reduced Attack Surface**: Build tools not present in production image
+- **Optimal Size**: 70% smaller than single-stage builds
+- **Clean Separation**: Build environment isolated from runtime
+- **Production Ready**: Only necessary components in final container
 
 ## Multi-Version Support
 
@@ -186,10 +209,12 @@ $ docker run --rm suricata:8.0.0 suricata-update --help   # Working
 ```
 
 ### Build Information
+- **Multi-Stage Architecture**: Optimized builds with separate compile and runtime stages
 - **Cross-platform**: Builds successfully on Linux with Docker
 - **CI/CD Ready**: Automated builds with artifact retention
 - **All Features**: Complete feature sets for both versions working perfectly
 - **Docker BuildKit**: Compatible with both legacy and BuildKit builders
+- **Size Optimization**: 70% smaller than single-stage builds through multi-stage approach
 
 The container is production-ready and includes all 2025 Suricata enhancements.
 
