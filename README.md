@@ -141,13 +141,12 @@ make help
 - **Storage**: ~500MB for image, additional space for logs
 - **Network**: Host network access or bridge with port forwarding
 - **Capabilities**: `NET_ADMIN` and `NET_RAW` for packet capture
-```
 
 **Note**: On macOS, the build automatically targets `linux/amd64` for compatibility with production deployments.
 
 ## Build Status
 
-### ✅ Latest Successful Builds (Verified July 25, 2025)
+### Latest Successful Builds (Verified July 25, 2025)
 
 #### Suricata 7.x (Stable/Production - **RECOMMENDED**)
 - **Version**: Suricata 7.0.11 (stable, production-ready)
@@ -155,9 +154,9 @@ make help
 - **Final Image Size**: 252MB (optimized multi-stage build)
 - **Rust Support**: 1.70.0 (proven stability)
 - **Python**: 3.11 (stable ecosystem)
-- **Build Status**: ✅ **Successfully built and tested**
+- **Build Status**: **Successfully built and tested**
 - **Features**: JA3 fingerprinting, stable TLS analysis, proven reliability
-- **suricata-update**: ✅ Fully working with all dependencies resolved
+- **suricata-update**: Fully working with all dependencies resolved
 - **Use Case**: **Recommended for all production deployments**
 
 #### Suricata 8.x (Future/Advanced Features)
@@ -166,9 +165,9 @@ make help
 - **Final Image Size**: 314MB (includes latest features)
 - **Rust Support**: 1.78.0 (latest optimizations)
 - **Python**: 3.12 (modern ecosystem)
-- **Build Status**: ✅ **Successfully built and tested**
+- **Build Status**: **Successfully built and tested**
 - **Features**: JA4 fingerprinting, HTTP/2 decompression, enhanced TLS analysis
-- **suricata-update**: ✅ Fully working with all dependencies resolved
+- **suricata-update**: Fully working with all dependencies resolved
 - **Use Case**: **Available for organizations ready to adopt cutting-edge features**
 
 ### Build Verification Results
@@ -182,8 +181,8 @@ $ docker run --rm --cap-add=NET_ADMIN --cap-add=NET_RAW --entrypoint="" suricata
 This is Suricata version 8.0.0 RELEASE
 
 # Both versions have working suricata-update
-$ docker run --rm suricata:7.0.11 suricata-update --help  # ✅ Working
-$ docker run --rm suricata:8.0.0 suricata-update --help   # ✅ Working
+$ docker run --rm suricata:7.0.11 suricata-update --help  # Working
+$ docker run --rm suricata:8.0.0 suricata-update --help   # Working
 ```
 
 ### Build Information
