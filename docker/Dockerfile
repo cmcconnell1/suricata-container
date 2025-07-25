@@ -146,9 +146,8 @@ RUN apk add --no-cache \
 COPY --from=builder /usr/bin/suricata /usr/bin/suricata
 COPY --from=builder /usr/bin/suricatasc /usr/bin/suricatasc
 COPY --from=builder /usr/bin/suricata-update /usr/bin/suricata-update
-# Copy default Suricata configuration and HTTP library
+# Copy default Suricata configuration
 COPY --from=builder /etc/suricata /etc/suricata
-COPY --from=builder /usr/lib/libhtp* /usr/lib/
 
 # -----------------------------------------------------------------------------
 # PYTHON DEPENDENCIES: Install suricata-update in runtime stage
