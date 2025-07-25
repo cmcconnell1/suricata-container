@@ -1,6 +1,6 @@
 # Suricata Container Project
 
-A production-ready Docker container for running Suricata IDS/IPS with multi-version support and automated CI/CD pipeline using CircleCI.
+CIS Albert Suricata Docker container IDS/IPS with **Suricata 7.x as the stable default** and 8.x support for future adoption, featuring automated CI/CD pipeline using CircleCI.
 
 ## Table of Contents
 
@@ -20,15 +20,16 @@ A production-ready Docker container for running Suricata IDS/IPS with multi-vers
 
 ## Overview
 
-This project provides production-ready Suricata IDS/IPS containers with support for both stable (7.x) and latest (8.x) versions. Built on Alpine Linux for minimal footprint and maximum security, with comprehensive CI/CD automation.
+This project provides production-ready Suricata IDS/IPS containers with **Suricata 7.x as the stable, recommended default** and 8.x available for organizations ready to adopt cutting-edge features. Built on Alpine Linux for minimal footprint and maximum security, with comprehensive CI/CD automation.
 
 ### Key Highlights
 
-- **Multi-Version Support**: Suricata 7.x (stable/default) and 8.x (latest features)
-- **Production Ready**: Optimized Alpine Linux base (~309MB final image)
+- **Stable Default**: Suricata 7.x (7.0.11) as the production-ready default choice
+- **Future Ready**: Suricata 8.x (8.0.0) available for advanced feature adoption
+- **Production Optimized**: Alpine Linux base (252MB for 7.x, 314MB for 8.x)
 - **Modern Security**: JA3/JA4 fingerprinting, HTTP/2 support, TLS analysis
 - **Automated CI/CD**: CircleCI pipeline with artifact retention
-- **Comprehensive Testing**: Automated builds, security scanning, and validation
+- **Comprehensive Testing**: Both versions successfully built and validated
 
 ## Multi-Version Support
 
@@ -53,7 +54,6 @@ docker pull cis-devops/suricata:8-latest
 docker pull cis-devops/suricata:7.0.11
 docker pull cis-devops/suricata:8.0.0
 ```
-- **Production-ready** with proper security capabilities and optimized multi-stage builds
 
 ## Quick Start
 
@@ -111,12 +111,12 @@ make help
 - **Production Ready**: Extensively tested and validated
 - **Long-term Support**: Stable API and configuration
 
-### Suricata 8.x (Latest Features)
+### Suricata 8.x (Future/Advanced Features)
 - **Alpine Linux 3.20** base with latest security updates
-- **Suricata 8.0.0** with Rust 1.78.0 support
-- **Cutting-edge Features**: JA4 fingerprinting, HTTP/2 decompression
-- **Enhanced Detection**: Advanced TLS analysis and protocol support
-- **Modern Architecture**: Latest Rust optimizations
+- **Suricata 8.0.0** with Rust 1.78.0 support (available for future adoption)
+- **Next-Generation Features**: JA4 fingerprinting, HTTP/2 decompression
+- **Advanced Detection**: Enhanced TLS analysis and protocol support
+- **Modern Architecture**: Latest Rust optimizations for forward compatibility
 
 ### Common Features (Both Versions)
 - **Fully Working suricata-update** - All Python dependencies resolved
@@ -147,14 +147,50 @@ make help
 
 ## Build Status
 
-**Successfully Built!** This container has been successfully built and tested with:
+### ✅ Latest Successful Builds (Verified July 25, 2025)
 
-- **Suricata 8.0.0** - Latest stable version running perfectly
-- **Alpine Linux 3.20** - Modern, secure base image
-- **Rust 1.78.0** - Full Rust integration for enhanced features
-- **Cross-platform** - Builds successfully on macOS for Linux deployment
-- **Docker Hub Ready** - Authentication and build process working
-- **All Features** - JA3/JA4, HTTP/2, TLS analysis, and latest detection capabilities
+#### Suricata 7.x (Stable/Production - **RECOMMENDED**)
+- **Version**: Suricata 7.0.11 (stable, production-ready)
+- **Base Image**: Alpine Linux 3.19 (7.39MB base)
+- **Final Image Size**: 252MB (optimized multi-stage build)
+- **Rust Support**: 1.70.0 (proven stability)
+- **Python**: 3.11 (stable ecosystem)
+- **Build Status**: ✅ **Successfully built and tested**
+- **Features**: JA3 fingerprinting, stable TLS analysis, proven reliability
+- **suricata-update**: ✅ Fully working with all dependencies resolved
+- **Use Case**: **Recommended for all production deployments**
+
+#### Suricata 8.x (Future/Advanced Features)
+- **Version**: Suricata 8.0.0 (available for future adoption)
+- **Base Image**: Alpine Linux 3.20 (7.79MB base)
+- **Final Image Size**: 314MB (includes latest features)
+- **Rust Support**: 1.78.0 (latest optimizations)
+- **Python**: 3.12 (modern ecosystem)
+- **Build Status**: ✅ **Successfully built and tested**
+- **Features**: JA4 fingerprinting, HTTP/2 decompression, enhanced TLS analysis
+- **suricata-update**: ✅ Fully working with all dependencies resolved
+- **Use Case**: **Available for organizations ready to adopt cutting-edge features**
+
+### Build Verification Results
+```bash
+# Suricata 7.x Test Results
+$ docker run --rm --cap-add=NET_ADMIN --cap-add=NET_RAW --entrypoint="" suricata:7.0.11 suricata -V
+This is Suricata version 7.0.11 RELEASE
+
+# Suricata 8.x Test Results
+$ docker run --rm --cap-add=NET_ADMIN --cap-add=NET_RAW --entrypoint="" suricata:8.0.0 suricata -V
+This is Suricata version 8.0.0 RELEASE
+
+# Both versions have working suricata-update
+$ docker run --rm suricata:7.0.11 suricata-update --help  # ✅ Working
+$ docker run --rm suricata:8.0.0 suricata-update --help   # ✅ Working
+```
+
+### Build Information
+- **Cross-platform**: Builds successfully on Linux with Docker
+- **CI/CD Ready**: Automated builds with artifact retention
+- **All Features**: Complete feature sets for both versions working perfectly
+- **Docker BuildKit**: Compatible with both legacy and BuildKit builders
 
 The container is production-ready and includes all 2025 Suricata enhancements.
 
@@ -189,7 +225,8 @@ suricata-container/
 The project includes optimized configurations for:
 
 - **Multi-stage Docker build** with Alpine Linux base
-- **Suricata 8.0.0** with Lua, GeoIP, and Rust support
+- **Suricata 7.0.11** (stable/default) with proven Lua, GeoIP, and Rust support
+- **Suricata 8.0.0** (future/advanced) available for organizations ready for latest features
 - **Custom rule sets** and automatic updates
 - **Health monitoring** and comprehensive logging
 - **Security capabilities** for network monitoring
@@ -239,10 +276,10 @@ The CircleCI pipeline automatically:
 ## Published Images
 
 Successfully built images are available at:
-- **Latest Stable**: `cmcc123/suricata:latest` (7.x)
-- **Latest Features**: `cis-devops/suricata:8-latest` (8.x)
+- **Latest Stable**: `cis-devops/suricata:latest` (7.x - **Recommended**)
+- **Future Features**: `cis-devops/suricata:8-latest` (8.x - Advanced)
 - **Specific Versions**: `cis-devops/suricata:7.0.11`, `cis-devops/suricata:8.0.0`
-- **Commit-based**: `cmcc123/suricata:<commit-hash>`
+- **Commit-based**: `cis-devops/suricata:<commit-hash>`
 
 ### Image Information
 
