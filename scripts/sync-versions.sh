@@ -2,22 +2,22 @@
 # =============================================================================
 # VERSION SYNC SCRIPT FOR SURICATA CONTAINER
 # =============================================================================
-# This script helps synchronize common changes between Suricata 8.x (main)
-# and 7.x (suricata-7.x) branches while preserving version-specific differences.
+# This script helps synchronize common changes between Suricata 7.x (main)
+# and 8.x (suricata-8.x) branches while preserving version-specific differences.
 #
 # Usage:
 #   ./scripts/sync-versions.sh [OPTIONS]
 #
 # Options:
-#   --from main|suricata-7.x    Source branch (default: main)
-#   --to main|suricata-7.x      Target branch (default: suricata-7.x)
+#   --from main|suricata-8.x    Source branch (default: main)
+#   --to main|suricata-8.x      Target branch (default: suricata-8.x)
 #   --files FILE1,FILE2,...     Specific files to sync (comma-separated)
 #   --dry-run                   Show what would be synced without doing it
 #   --interactive               Prompt for each file
 #   --help                      Show this help message
 #
 # Examples:
-#   ./scripts/sync-versions.sh --from main --to suricata-7.x
+#   ./scripts/sync-versions.sh --from main --to suricata-8.x
 #   ./scripts/sync-versions.sh --files "README.md,scripts/entrypoint.sh" --dry-run
 #   ./scripts/sync-versions.sh --interactive
 # =============================================================================
@@ -34,7 +34,7 @@ NC='\033[0m' # No Color
 
 # Default options
 FROM_BRANCH="main"
-TO_BRANCH="suricata-7.x"
+TO_BRANCH="suricata-8.x"
 SPECIFIC_FILES=""
 DRY_RUN=false
 INTERACTIVE=false
@@ -48,6 +48,9 @@ SYNCABLE_FILES=(
     "docs/SETUP.md"
     "docs/USAGE.md"
     "docs/TROUBLESHOOTING.md"
+    "docs/MULTI-VERSION.md"
+    "docs/TAGGING-STRATEGY.md"
+    "MULTI-VERSION-QUICK-REFERENCE.md"
     "scripts/entrypoint.sh"
     "scripts/healthcheck.sh"
     "scripts/update-rules.sh"
@@ -64,6 +67,7 @@ EXCLUDED_FILES=(
     "scripts/setup-multi-version.sh"
     "scripts/build-versions.sh"
     "scripts/sync-versions.sh"
+    "scripts/update-version.sh"
     ".circleci/config.yml"
 )
 
@@ -74,17 +78,21 @@ show_help() {
     echo "Usage: $0 [OPTIONS]"
     echo ""
     echo "Options:"
-    echo "  --from main|suricata-7.x    Source branch (default: main)"
-    echo "  --to main|suricata-7.x      Target branch (default: suricata-7.x)"
+    echo "  --from main|suricata-8.x    Source branch (default: main)"
+    echo "  --to main|suricata-8.x      Target branch (default: suricata-8.x)"
     echo "  --files FILE1,FILE2,...     Specific files to sync (comma-separated)"
     echo "  --dry-run                   Show what would be synced without doing it"
     echo "  --interactive               Prompt for each file"
     echo "  --help                      Show this help message"
     echo ""
     echo "Examples:"
-    echo "  $0 --from main --to suricata-7.x"
+    echo "  $0 --from main --to suricata-8.x"
     echo "  $0 --files \"README.md,scripts/entrypoint.sh\" --dry-run"
     echo "  $0 --interactive"
+    echo ""
+    echo "Branch Structure:"
+    echo "  main         → Suricata 7.x (stable/default)"
+    echo "  suricata-8.x → Suricata 8.x (latest features)"
     echo ""
     echo "Syncable files:"
     for file in "${SYNCABLE_FILES[@]}"; do
@@ -205,13 +213,13 @@ while [[ $# -gt 0 ]]; do
 done
 
 # Validate branches
-if [[ ! "$FROM_BRANCH" =~ ^(main|suricata-7.x)$ ]]; then
-    echo -e "${RED}Error: --from must be 'main' or 'suricata-7.x'${NC}"
+if [[ ! "$FROM_BRANCH" =~ ^(main|suricata-8.x)$ ]]; then
+    echo -e "${RED}Error: --from must be 'main' or 'suricata-8.x'${NC}"
     exit 1
 fi
 
-if [[ ! "$TO_BRANCH" =~ ^(main|suricata-7.x)$ ]]; then
-    echo -e "${RED}Error: --to must be 'main' or 'suricata-7.x'${NC}"
+if [[ ! "$TO_BRANCH" =~ ^(main|suricata-8.x)$ ]]; then
+    echo -e "${RED}Error: --to must be 'main' or 'suricata-8.x'${NC}"
     exit 1
 fi
 

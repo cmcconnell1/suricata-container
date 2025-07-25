@@ -9,8 +9,8 @@
 #   ./scripts/update-version.sh [OPTIONS]
 #
 # Options:
-#   --version VERSION       New Suricata version (e.g., 8.0.1, 7.0.12)
-#   --branch main|suricata-7.x  Target branch (auto-detected from version)
+#   --version VERSION       New Suricata version (e.g., 7.0.12, 8.0.1)
+#   --branch main|suricata-8.x  Target branch (auto-detected from version)
 #   --alpine VERSION        Alpine version (optional, auto-selected)
 #   --rust VERSION          Rust version (optional, auto-selected)
 #   --tag                   Create git tag after update
@@ -18,9 +18,9 @@
 #   --help                  Show this help message
 #
 # Examples:
-#   ./scripts/update-version.sh --version 8.0.1 --tag
 #   ./scripts/update-version.sh --version 7.0.12 --tag
-#   ./scripts/update-version.sh --version 8.0.1 --alpine 3.21 --dry-run
+#   ./scripts/update-version.sh --version 8.0.1 --tag
+#   ./scripts/update-version.sh --version 7.0.12 --alpine 3.19 --dry-run
 # =============================================================================
 
 set -e
@@ -41,14 +41,14 @@ RUST_VERSION=""
 CREATE_TAG=false
 DRY_RUN=false
 
-# Version compatibility matrix
+# Version compatibility matrix (updated for new branch structure)
 declare -A VERSION_MATRIX
-VERSION_MATRIX[8_ALPINE]="3.20"
-VERSION_MATRIX[8_RUST]="1.78.0"
-VERSION_MATRIX[8_BRANCH]="main"
 VERSION_MATRIX[7_ALPINE]="3.19"
 VERSION_MATRIX[7_RUST]="1.70.0"
-VERSION_MATRIX[7_BRANCH]="suricata-7.x"
+VERSION_MATRIX[7_BRANCH]="main"
+VERSION_MATRIX[8_ALPINE]="3.20"
+VERSION_MATRIX[8_RUST]="1.78.0"
+VERSION_MATRIX[8_BRANCH]="suricata-8.x"
 
 # Function to show help
 show_help() {
@@ -57,8 +57,8 @@ show_help() {
     echo "Usage: $0 [OPTIONS]"
     echo ""
     echo "Options:"
-    echo "  --version VERSION       New Suricata version (e.g., 8.0.1, 7.0.12)"
-    echo "  --branch main|suricata-7.x  Target branch (auto-detected from version)"
+    echo "  --version VERSION       New Suricata version (e.g., 7.0.12, 8.0.1)"
+    echo "  --branch main|suricata-8.x  Target branch (auto-detected from version)"
     echo "  --alpine VERSION        Alpine version (optional, auto-selected)"
     echo "  --rust VERSION          Rust version (optional, auto-selected)"
     echo "  --tag                   Create git tag after update"
@@ -66,13 +66,13 @@ show_help() {
     echo "  --help                  Show this help message"
     echo ""
     echo "Examples:"
-    echo "  $0 --version 8.0.1 --tag"
     echo "  $0 --version 7.0.12 --tag"
-    echo "  $0 --version 8.0.1 --alpine 3.21 --dry-run"
+    echo "  $0 --version 8.0.1 --tag"
+    echo "  $0 --version 7.0.12 --alpine 3.19 --dry-run"
     echo ""
     echo "Version Compatibility:"
-    echo "  Suricata 8.x → Alpine ${VERSION_MATRIX[8_ALPINE]}, Rust ${VERSION_MATRIX[8_RUST]}, Branch: ${VERSION_MATRIX[8_BRANCH]}"
     echo "  Suricata 7.x → Alpine ${VERSION_MATRIX[7_ALPINE]}, Rust ${VERSION_MATRIX[7_RUST]}, Branch: ${VERSION_MATRIX[7_BRANCH]}"
+    echo "  Suricata 8.x → Alpine ${VERSION_MATRIX[8_ALPINE]}, Rust ${VERSION_MATRIX[8_RUST]}, Branch: ${VERSION_MATRIX[8_BRANCH]}"
     echo ""
 }
 
@@ -80,12 +80,12 @@ show_help() {
 detect_version_family() {
     local version=$1
     
-    if [[ $version =~ ^8\. ]]; then
-        echo "8"
-    elif [[ $version =~ ^7\. ]]; then
+    if [[ $version =~ ^7\. ]]; then
         echo "7"
+    elif [[ $version =~ ^8\. ]]; then
+        echo "8"
     else
-        echo -e "${RED}Error: Unsupported version family. Only 8.x and 7.x are supported.${NC}"
+        echo -e "${RED}Error: Unsupported version family. Only 7.x and 8.x are supported.${NC}"
         exit 1
     fi
 }
@@ -187,8 +187,8 @@ if [ -z "$RUST_VERSION" ]; then
 fi
 
 # Validate branch
-if [[ ! "$TARGET_BRANCH" =~ ^(main|suricata-7.x)$ ]]; then
-    echo -e "${RED}Error: Invalid branch. Must be 'main' or 'suricata-7.x'${NC}"
+if [[ ! "$TARGET_BRANCH" =~ ^(main|suricata-8.x)$ ]]; then
+    echo -e "${RED}Error: Invalid branch. Must be 'main' or 'suricata-8.x'${NC}"
     exit 1
 fi
 

@@ -1,47 +1,35 @@
 # Multi-Version Support Guide
 
-This document explains how to work with both Suricata 8.x and 7.x versions in this project.
+This document explains how to work with both Suricata 7.x (stable/default) and 8.x (latest) versions in this project.
 
 ## Overview
 
 The Suricata container project supports two major versions using a branching strategy:
 
-- **Suricata 8.x** (main branch) - Latest features, requires Alpine 3.20+ and Rust 1.78.0+
-- **Suricata 7.x** (suricata-7.x branch) - Stable version, compatible with Alpine 3.19+ and Rust 1.70.0+
+- **Suricata 7.x** (main branch) - Stable version, default build, compatible with Alpine 3.19+ and Rust 1.70.0+
+- **Suricata 8.x** (suricata-8.x branch) - Latest features, requires Alpine 3.20+ and Rust 1.78.0+
 
 ## Branch Structure
 
 ```
 Repository Structure:
-├── main branch (Suricata 8.x)
-│   ├── Default: Suricata 8.0.0, Alpine 3.20, Rust 1.78.0
+├── main branch (Suricata 7.x - DEFAULT)
+│   ├── Default: Suricata 7.0.11, Alpine 3.19, Rust 1.70.0, Python 3.11
+│   └── Tags: v7.0.11, v7.0.12, v7.0.13...
+├── suricata-8.x branch (Suricata 8.x - LATEST)
+│   ├── Default: Suricata 8.0.0, Alpine 3.20, Rust 1.78.0, Python 3.12
 │   └── Tags: v8.0.0, v8.0.1, v8.0.2...
-└── suricata-7.x branch (Suricata 7.x)
-    ├── Default: Suricata 7.0.11, Alpine 3.19, Rust 1.70.0
-    └── Tags: v7.0.11, v7.0.12, v7.0.13...
+└── suricata-7.x branch (Suricata 7.x - LEGACY)
+    ├── Same as main branch
+    └── Maintained for backward compatibility
 ```
 
 ## Quick Start
 
-### Building Suricata 8.x
+### Building Suricata 7.x (Default/Stable)
 ```bash
-# Switch to main branch
+# Switch to main branch (default)
 git checkout main
-
-# Build with defaults (Suricata 8.0.0)
-make build
-
-# Test the build
-make test
-
-# Build specific 8.x version
-SURICATA_VERSION=8.0.0 make build
-```
-
-### Building Suricata 7.x
-```bash
-# Switch to 7.x branch
-git checkout suricata-7.x
 
 # Build with defaults (Suricata 7.0.11)
 make build
@@ -53,90 +41,73 @@ make test
 SURICATA_VERSION=7.0.10 make build
 ```
 
-## Multi-Version Build Script
-
-The `scripts/build-versions.sh` script simplifies building both versions:
-
-### Basic Usage
+### Building Suricata 8.x (Latest Features)
 ```bash
-# Build both versions
-./scripts/build-versions.sh --version both
+# Switch to 8.x branch
+git checkout suricata-8.x
 
-# Build and test both versions
-./scripts/build-versions.sh --version both --test
+# Build with defaults (Suricata 8.0.0)
+make build
 
-# Build only Suricata 7.x
-./scripts/build-versions.sh --version 7 --test
+# Test the build
+make test
 
-# Build Suricata 8.x and tag as latest
-./scripts/build-versions.sh --version 8 --tag-latest
+# Build specific 8.x version
+SURICATA_VERSION=8.0.1 make build
 ```
 
-### Advanced Usage
-```bash
-# Build, test, and push both versions
-./scripts/build-versions.sh --version both --test --push
+## Docker Hub Tags
 
-# Build 8.x, tag as latest, and push
-./scripts/build-versions.sh --version 8 --tag-latest --test --push
+### Current Tagging Strategy
 
-# Set custom Docker username
-DOCKER_USERNAME=myusername ./scripts/build-versions.sh --version both --push
-```
-
-## Docker Hub Tagging Strategy
-
-### Suricata 8.x Tags (from main branch)
-- `latest` - Always points to latest 8.x
-- `8` - Latest 8.x version
-- `8.0.0` - Specific version
-- `<commit-hash>` - Specific commit
-
-### Suricata 7.x Tags (from suricata-7.x branch)
-- `7-latest` - Always points to latest 7.x
-- `7` - Latest 7.x version
-- `7.0.11` - Specific version
-- `<commit-hash>` - Specific commit
+| Tag | Description | Branch | Version | Usage |
+|-----|-------------|--------|---------|-------|
+| `latest` | Latest stable 7.x | main | 7.0.11 | Production (stable) |
+| `7`, `7.0.11` | Suricata 7.x versions | main | 7.0.11 | Production (7.x family) |
+| `8-latest` | Latest 8.x | suricata-8.x | 8.0.0 | Production (latest features) |
+| `8`, `8.0.0` | Suricata 8.x versions | suricata-8.x | 8.0.0 | Production (8.x family) |
+| `7-latest` | Legacy 7.x tag | suricata-7.x | 7.0.11 | Legacy compatibility |
 
 ## Version Compatibility Matrix
 
-| Suricata Version | Alpine Version | Rust Version | Status | Branch |
-|------------------|----------------|--------------|--------|--------|
-| 8.0.x | 3.20+ | 1.78.0+ | Current | main |
-| 7.0.x | 3.19+ | 1.70.0+ | Stable | suricata-7.x |
-| 6.0.x | 3.16+ | 1.60.0+ | Legacy | Not supported |
+| Suricata Version | Alpine Version | Rust Version | Python Version | Status | Branch |
+|------------------|----------------|--------------|----------------|--------|--------|
+| 7.0.x | 3.19+ | 1.70.0+ | 3.11+ | Stable (Default) | main |
+| 8.0.x | 3.20+ | 1.78.0+ | 3.12+ | Latest | suricata-8.x |
+| 6.0.x | 3.16+ | 1.60.0+ | 3.10+ | Legacy | Not supported |
 
 ## Development Workflow
 
 ### Working on Both Versions
 
-1. **Make changes to main branch first** (Suricata 8.x)
+1. **Make changes to main branch first** (Suricata 7.x)
 2. **Test thoroughly**
-3. **Cherry-pick or merge changes to suricata-7.x** if applicable
+3. **Apply changes to suricata-8.x** if applicable
 4. **Test both versions**
 
 ### Example Workflow
 ```bash
-# Work on main branch
+# Work on main branch (7.x)
 git checkout main
 # Make changes...
 git add .
 git commit -m "Add new feature"
 
-# Apply to 7.x branch if compatible
-git checkout suricata-7.x
+# Apply to 8.x branch if compatible
+git checkout suricata-8.x
 git cherry-pick <commit-hash>
 
 # Test both versions
-./scripts/build-versions.sh --version both --test
+git checkout main && make build && make test
+git checkout suricata-8.x && make build && make test
 ```
 
 ### Branch-Specific Changes
 
 Some changes may only apply to one version:
 
+- **7.x only**: Stability fixes, compatibility with older dependencies
 - **8.x only**: New features requiring latest Rust/Alpine
-- **7.x only**: Compatibility fixes for older dependencies
 - **Both**: Bug fixes, documentation, scripts
 
 **Note**: The Dockerfile uses dynamic version variables to ensure consistency:
@@ -148,43 +119,107 @@ Some changes may only apply to one version:
 The CircleCI pipeline automatically builds both versions:
 
 ### Triggers
-- **main branch** → Builds and deploys Suricata 8.x
-- **suricata-7.x branch** → Builds and deploys Suricata 7.x
+- **main branch** → Builds and deploys Suricata 7.x (tags: `latest`, `7`, `7.0.11`)
+- **suricata-8.x branch** → Builds and deploys Suricata 8.x (tags: `8-latest`, `8`, `8.0.0`)
+- **suricata-7.x branch** → Builds and deploys Suricata 7.x (tags: `7-latest`)
 
 ### Workflow Names
-- `build_scan_deploy_8x` - For main branch
-- `build_scan_deploy_7x` - For suricata-7.x branch
+- `build_scan_deploy_7x` - For main branch (default)
+- `build_scan_deploy_8x` - For suricata-8.x branch
+- `build_scan_deploy_7x_legacy` - For suricata-7.x branch
+
+## Version Override Examples
+
+### Environment Variables
+```bash
+# Build 8.x on main branch
+SURICATA_VERSION=8.0.0 ALPINE_VERSION=3.20 make build
+
+# Build 7.x on 8.x branch
+SURICATA_VERSION=7.0.11 ALPINE_VERSION=3.19 make build
+```
+
+### Docker Build Arguments
+```bash
+# Build 8.x with specific versions
+docker build --build-arg SURICATA_VERSION=8.0.0 \
+             --build-arg ALPINE_VERSION=3.20 \
+             --build-arg RUST_VERSION=1.78.0 \
+             --build-arg PYTHON_VERSION=3.12 \
+             -f docker/Dockerfile -t suricata:8.0.0 .
+
+# Build 7.x with specific versions
+docker build --build-arg SURICATA_VERSION=7.0.11 \
+             --build-arg ALPINE_VERSION=3.19 \
+             --build-arg RUST_VERSION=1.70.0 \
+             --build-arg PYTHON_VERSION=3.11 \
+             -f docker/Dockerfile -t suricata:7.0.11 .
+```
 
 ## Maintenance Guidelines
 
 ### Version Updates
 
-#### Updating Suricata 8.x
+#### Updating Suricata 7.x (Main Branch)
 ```bash
 git checkout main
-# Update Makefile and Dockerfile defaults
-sed -i 's/SURICATA_VERSION ?= 8.0.0/SURICATA_VERSION ?= 8.0.1/' Makefile
-sed -i 's/ARG SURICATA_VERSION=8.0.0/ARG SURICATA_VERSION=8.0.1/' docker/Dockerfile
-git commit -am "Update Suricata to 8.0.1"
-git tag v8.0.1
-```
-
-#### Updating Suricata 7.x
-```bash
-git checkout suricata-7.x
-# Update Makefile and Dockerfile defaults
+# Update defaults in Makefile and Dockerfile
 sed -i 's/SURICATA_VERSION ?= 7.0.11/SURICATA_VERSION ?= 7.0.12/' Makefile
 sed -i 's/ARG SURICATA_VERSION=7.0.11/ARG SURICATA_VERSION=7.0.12/' docker/Dockerfile
 git commit -am "Update Suricata to 7.0.12"
 git tag v7.0.12
 ```
 
-### Syncing Common Changes
-
-Use the provided script to sync common changes:
+#### Updating Suricata 8.x
 ```bash
-# This will be implemented in the next task
-./scripts/sync-versions.sh
+git checkout suricata-8.x
+# Update defaults in Makefile and Dockerfile
+sed -i 's/SURICATA_VERSION ?= 8.0.0/SURICATA_VERSION ?= 8.0.1/' Makefile
+sed -i 's/ARG SURICATA_VERSION=8.0.0/ARG SURICATA_VERSION=8.0.1/' docker/Dockerfile
+git commit -am "Update Suricata to 8.0.1"
+git tag v8.0.1
+```
+
+## Best Practices
+
+1. **Use main branch for stable deployments** (7.x)
+2. **Use suricata-8.x branch for latest features** (8.x)
+3. **Test both versions when making changes**
+4. **Keep documentation updated for both versions**
+5. **Tag releases properly with version-specific tags**
+6. **Monitor compatibility between versions**
+7. **Use environment variables for version overrides when needed**
+
+## Migration Guide
+
+### From Single Version to Multi-Version
+
+If you were using the old single-version approach:
+
+```bash
+# Old way (was 8.x default)
+make build
+
+# New way - 7.x is now default
+git checkout main        # For 7.x (stable)
+make build
+
+git checkout suricata-8.x  # For 8.x (latest)
+make build
+```
+
+### Docker Pull Commands
+
+```bash
+# Suricata 7.x (stable/default)
+docker pull username/suricata:latest
+docker pull username/suricata:7
+docker pull username/suricata:7.0.11
+
+# Suricata 8.x (latest features)
+docker pull username/suricata:8-latest
+docker pull username/suricata:8
+docker pull username/suricata:8.0.0
 ```
 
 ## Troubleshooting
@@ -195,8 +230,8 @@ Use the provided script to sync common changes:
 ```bash
 # Error: Rust version incompatible
 # Solution: Use correct Alpine version for each branch
-git checkout main      # Uses Alpine 3.20
-git checkout suricata-7.x  # Uses Alpine 3.19
+git checkout main         # Uses Alpine 3.19 (7.x)
+git checkout suricata-8.x # Uses Alpine 3.20 (8.x)
 ```
 
 #### Wrong Version Built
@@ -213,8 +248,8 @@ make help
 # Clean up old images
 make clean
 
-# Rebuild with correct tags
-./scripts/build-versions.sh --version both
+# Rebuild with correct defaults
+make build
 ```
 
 ### Getting Help
@@ -222,48 +257,6 @@ make clean
 1. Check current configuration: `make help`
 2. Verify branch: `git branch --show-current`
 3. Test build: `make build && make test`
-4. Use multi-version script: `./scripts/build-versions.sh --help`
+4. Check documentation: `docs/MULTI-VERSION.md`
 
-## Best Practices
-
-1. **Always test both versions** when making changes
-2. **Use the multi-version build script** for consistency
-3. **Keep documentation updated** for both versions
-4. **Tag releases properly** with version-specific tags
-5. **Monitor compatibility** between versions
-6. **Use environment variables** for version overrides when needed
-
-## Migration Guide
-
-### From Single Version to Multi-Version
-
-If you were using the old single-version approach:
-
-```bash
-# Old way
-make build
-
-# New way - specify version
-git checkout main        # For 8.x
-make build
-
-git checkout suricata-7.x  # For 7.x
-make build
-
-# Or use the script
-./scripts/build-versions.sh --version both
-```
-
-### Docker Pull Commands
-
-```bash
-# Suricata 8.x
-docker pull username/suricata:latest
-docker pull username/suricata:8
-docker pull username/suricata:8.0.0
-
-# Suricata 7.x
-docker pull username/suricata:7-latest
-docker pull username/suricata:7
-docker pull username/suricata:7.0.11
-```
+This multi-version approach provides stability with 7.x as the default while keeping cutting-edge 8.x features easily accessible.

@@ -2,17 +2,17 @@
 # =============================================================================
 # MULTI-VERSION BUILD SCRIPT FOR SURICATA CONTAINER
 # =============================================================================
-# This script helps build and manage both Suricata 8.x and 7.x versions
-# with proper tagging and testing.
+# This script helps build and manage both Suricata 7.x (stable/default) and 
+# 8.x (latest) versions with proper tagging and testing.
 #
 # Usage:
 #   ./scripts/build-versions.sh [OPTIONS]
 #
 # Options:
-#   --version 8|7|both    Build specific version or both (default: both)
+#   --version 7|8|both    Build specific version or both (default: both)
 #   --test               Run tests after building
 #   --push               Push to Docker Hub after successful build/test
-#   --tag-latest         Tag as latest (only for version 8)
+#   --tag-latest         Tag as latest (7.x gets 'latest', 8.x gets '8-latest')
 #   --help               Show this help message
 #
 # Examples:
@@ -38,14 +38,14 @@ PUSH_IMAGES=false
 TAG_LATEST=false
 DOCKER_USERNAME=${DOCKER_USERNAME:-"yourusername"}
 
-# Version configurations
+# Version configurations (updated for new branch structure)
 declare -A VERSION_CONFIG
-VERSION_CONFIG[8_BRANCH]="main"
-VERSION_CONFIG[8_VERSION]="8.0.0"
-VERSION_CONFIG[8_ALPINE]="3.20"
-VERSION_CONFIG[7_BRANCH]="suricata-7.x"
+VERSION_CONFIG[7_BRANCH]="main"
 VERSION_CONFIG[7_VERSION]="7.0.11"
 VERSION_CONFIG[7_ALPINE]="3.19"
+VERSION_CONFIG[8_BRANCH]="suricata-8.x"
+VERSION_CONFIG[8_VERSION]="8.0.0"
+VERSION_CONFIG[8_ALPINE]="3.20"
 
 # Function to show help
 show_help() {
@@ -54,10 +54,10 @@ show_help() {
     echo "Usage: $0 [OPTIONS]"
     echo ""
     echo "Options:"
-    echo "  --version 8|7|both    Build specific version or both (default: both)"
+    echo "  --version 7|8|both    Build specific version or both (default: both)"
     echo "  --test               Run tests after building"
     echo "  --push               Push to Docker Hub after successful build/test"
-    echo "  --tag-latest         Tag version 8 as 'latest' (only applies to v8)"
+    echo "  --tag-latest         Tag as latest (7.x gets 'latest', 8.x gets '8-latest')"
     echo "  --help               Show this help message"
     echo ""
     echo "Examples:"
@@ -67,6 +67,10 @@ show_help() {
     echo ""
     echo "Environment Variables:"
     echo "  DOCKER_USERNAME      Docker Hub username (default: yourusername)"
+    echo ""
+    echo "Branch Structure:"
+    echo "  7.x (stable/default) → main branch"
+    echo "  8.x (latest)         → suricata-8.x branch"
     echo ""
 }
 
@@ -99,18 +103,17 @@ build_version() {
     docker tag suricata:${suricata_version} ${DOCKER_USERNAME}/suricata:${suricata_version}
     docker tag suricata:${suricata_version} ${DOCKER_USERNAME}/suricata:${version}
     
-    # Tag as latest for version 8 if requested
-    if [ "$version" = "8" ] && [ "$TAG_LATEST" = true ]; then
-        echo -e "${YELLOW}Tagging as latest...${NC}"
-        docker tag suricata:${suricata_version} suricata:latest
-        docker tag suricata:${suricata_version} ${DOCKER_USERNAME}/suricata:latest
-    fi
-    
-    # Tag 7.x as 7-latest
-    if [ "$version" = "7" ]; then
-        echo -e "${YELLOW}Tagging as 7-latest...${NC}"
-        docker tag suricata:${suricata_version} suricata:7-latest
-        docker tag suricata:${suricata_version} ${DOCKER_USERNAME}/suricata:7-latest
+    # Tag as latest based on version
+    if [ "$TAG_LATEST" = true ]; then
+        if [ "$version" = "7" ]; then
+            echo -e "${YELLOW}Tagging 7.x as latest (stable default)...${NC}"
+            docker tag suricata:${suricata_version} suricata:latest
+            docker tag suricata:${suricata_version} ${DOCKER_USERNAME}/suricata:latest
+        elif [ "$version" = "8" ]; then
+            echo -e "${YELLOW}Tagging 8.x as 8-latest...${NC}"
+            docker tag suricata:${suricata_version} suricata:8-latest
+            docker tag suricata:${suricata_version} ${DOCKER_USERNAME}/suricata:8-latest
+        fi
     fi
     
     echo -e "${GREEN}✓ Successfully built Suricata ${version}.x${NC}"
@@ -145,14 +148,13 @@ push_version() {
     docker push ${DOCKER_USERNAME}/suricata:${suricata_version}
     docker push ${DOCKER_USERNAME}/suricata:${version}
     
-    # Push latest tag for version 8 if tagged
-    if [ "$version" = "8" ] && [ "$TAG_LATEST" = true ]; then
-        docker push ${DOCKER_USERNAME}/suricata:latest
-    fi
-    
-    # Push 7-latest for version 7
-    if [ "$version" = "7" ]; then
-        docker push ${DOCKER_USERNAME}/suricata:7-latest
+    # Push latest tags if tagged
+    if [ "$TAG_LATEST" = true ]; then
+        if [ "$version" = "7" ]; then
+            docker push ${DOCKER_USERNAME}/suricata:latest
+        elif [ "$version" = "8" ]; then
+            docker push ${DOCKER_USERNAME}/suricata:8-latest
+        fi
     fi
     
     echo -e "${GREEN}✓ Successfully pushed Suricata ${version}.x images${NC}"
@@ -191,8 +193,8 @@ while [[ $# -gt 0 ]]; do
 done
 
 # Validate version parameter
-if [[ ! "$VERSION" =~ ^(8|7|both)$ ]]; then
-    echo -e "${RED}Error: --version must be 8, 7, or both${NC}"
+if [[ ! "$VERSION" =~ ^(7|8|both)$ ]]; then
+    echo -e "${RED}Error: --version must be 7, 8, or both${NC}"
     exit 1
 fi
 
@@ -213,17 +215,7 @@ echo -e "Tag Latest: ${TAG_LATEST}"
 echo -e "Docker Username: ${DOCKER_USERNAME}"
 echo ""
 
-# Build versions
-if [ "$VERSION" = "both" ] || [ "$VERSION" = "8" ]; then
-    build_version 8
-    if [ "$RUN_TESTS" = true ]; then
-        test_version 8
-    fi
-    if [ "$PUSH_IMAGES" = true ]; then
-        push_version 8
-    fi
-fi
-
+# Build versions (7.x first as it's now the default)
 if [ "$VERSION" = "both" ] || [ "$VERSION" = "7" ]; then
     build_version 7
     if [ "$RUN_TESTS" = true ]; then
@@ -231,6 +223,16 @@ if [ "$VERSION" = "both" ] || [ "$VERSION" = "7" ]; then
     fi
     if [ "$PUSH_IMAGES" = true ]; then
         push_version 7
+    fi
+fi
+
+if [ "$VERSION" = "both" ] || [ "$VERSION" = "8" ]; then
+    build_version 8
+    if [ "$RUN_TESTS" = true ]; then
+        test_version 8
+    fi
+    if [ "$PUSH_IMAGES" = true ]; then
+        push_version 8
     fi
 fi
 

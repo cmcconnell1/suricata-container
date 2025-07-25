@@ -16,8 +16,8 @@
 #
 # Examples:
 #   ./scripts/version-matrix.sh --show-matrix
-#   ./scripts/version-matrix.sh --validate 8.0.0
-#   ./scripts/version-matrix.sh --recommend 7.0.11
+#   ./scripts/version-matrix.sh --validate 7.0.11
+#   ./scripts/version-matrix.sh --recommend 8.0.0
 # =============================================================================
 
 set -e
@@ -30,28 +30,28 @@ BLUE='\033[0;34m'
 BOLD='\033[1m'
 NC='\033[0m' # No Color
 
-# Version compatibility matrix
+# Version compatibility matrix (updated for new branch structure)
 declare -A VERSION_MATRIX
 
-# Suricata 8.x compatibility
-VERSION_MATRIX[8_MIN_ALPINE]="3.20"
-VERSION_MATRIX[8_RECOMMENDED_ALPINE]="3.20"
-VERSION_MATRIX[8_MIN_RUST]="1.78.0"
-VERSION_MATRIX[8_RECOMMENDED_RUST]="1.78.0"
-VERSION_MATRIX[8_MIN_PYTHON]="3.11"
-VERSION_MATRIX[8_RECOMMENDED_PYTHON]="3.12"
-VERSION_MATRIX[8_BRANCH]="main"
-VERSION_MATRIX[8_FEATURES]="HTTP/2 decompression, JA4 fingerprinting, Enhanced TLS analysis"
-
-# Suricata 7.x compatibility
+# Suricata 7.x compatibility (main branch - default)
 VERSION_MATRIX[7_MIN_ALPINE]="3.18"
 VERSION_MATRIX[7_RECOMMENDED_ALPINE]="3.19"
 VERSION_MATRIX[7_MIN_RUST]="1.70.0"
 VERSION_MATRIX[7_RECOMMENDED_RUST]="1.70.0"
 VERSION_MATRIX[7_MIN_PYTHON]="3.10"
 VERSION_MATRIX[7_RECOMMENDED_PYTHON]="3.11"
-VERSION_MATRIX[7_BRANCH]="suricata-7.x"
+VERSION_MATRIX[7_BRANCH]="main"
 VERSION_MATRIX[7_FEATURES]="JA3 fingerprinting, Stable TLS analysis, Proven reliability"
+
+# Suricata 8.x compatibility (suricata-8.x branch)
+VERSION_MATRIX[8_MIN_ALPINE]="3.20"
+VERSION_MATRIX[8_RECOMMENDED_ALPINE]="3.20"
+VERSION_MATRIX[8_MIN_RUST]="1.78.0"
+VERSION_MATRIX[8_RECOMMENDED_RUST]="1.78.0"
+VERSION_MATRIX[8_MIN_PYTHON]="3.11"
+VERSION_MATRIX[8_RECOMMENDED_PYTHON]="3.12"
+VERSION_MATRIX[8_BRANCH]="suricata-8.x"
+VERSION_MATRIX[8_FEATURES]="HTTP/2 decompression, JA4 fingerprinting, Enhanced TLS analysis"
 
 # Alpine -> Python mapping
 declare -A ALPINE_PYTHON
@@ -74,8 +74,8 @@ show_help() {
     echo ""
     echo "Examples:"
     echo "  $0 --show-matrix"
-    echo "  $0 --validate 8.0.0"
-    echo "  $0 --recommend 7.0.11"
+    echo "  $0 --validate 7.0.11"
+    echo "  $0 --recommend 8.0.0"
     echo ""
 }
 
@@ -84,20 +84,20 @@ show_matrix() {
     echo -e "${BOLD}Suricata Container Version Compatibility Matrix${NC}"
     echo ""
     
+    echo -e "${BLUE}Suricata 7.x (Stable/Default)${NC}"
+    echo "├── Branch: ${VERSION_MATRIX[7_BRANCH]}"
+    echo "├── Alpine: ${VERSION_MATRIX[7_MIN_ALPINE]}+ (recommended: ${VERSION_MATRIX[7_RECOMMENDED_ALPINE]})"
+    echo "├── Rust: ${VERSION_MATRIX[7_MIN_RUST]}+ (recommended: ${VERSION_MATRIX[7_RECOMMENDED_RUST]})"
+    echo "├── Python: ${VERSION_MATRIX[7_MIN_PYTHON]}+ (recommended: ${VERSION_MATRIX[7_RECOMMENDED_PYTHON]})"
+    echo "└── Features: ${VERSION_MATRIX[7_FEATURES]}"
+    echo ""
+    
     echo -e "${BLUE}Suricata 8.x (Latest Features)${NC}"
     echo "├── Branch: ${VERSION_MATRIX[8_BRANCH]}"
     echo "├── Alpine: ${VERSION_MATRIX[8_MIN_ALPINE]}+ (recommended: ${VERSION_MATRIX[8_RECOMMENDED_ALPINE]})"
     echo "├── Rust: ${VERSION_MATRIX[8_MIN_RUST]}+ (recommended: ${VERSION_MATRIX[8_RECOMMENDED_RUST]})"
     echo "├── Python: ${VERSION_MATRIX[8_MIN_PYTHON]}+ (recommended: ${VERSION_MATRIX[8_RECOMMENDED_PYTHON]})"
     echo "└── Features: ${VERSION_MATRIX[8_FEATURES]}"
-    echo ""
-    
-    echo -e "${BLUE}Suricata 7.x (Stable)${NC}"
-    echo "├── Branch: ${VERSION_MATRIX[7_BRANCH]}"
-    echo "├── Alpine: ${VERSION_MATRIX[7_MIN_ALPINE]}+ (recommended: ${VERSION_MATRIX[7_RECOMMENDED_ALPINE]})"
-    echo "├── Rust: ${VERSION_MATRIX[7_MIN_RUST]}+ (recommended: ${VERSION_MATRIX[7_RECOMMENDED_RUST]})"
-    echo "├── Python: ${VERSION_MATRIX[7_MIN_PYTHON]}+ (recommended: ${VERSION_MATRIX[7_RECOMMENDED_PYTHON]})"
-    echo "└── Features: ${VERSION_MATRIX[7_FEATURES]}"
     echo ""
     
     echo -e "${BLUE}Alpine Linux → Python Version Mapping${NC}"
@@ -109,19 +109,19 @@ show_matrix() {
     
     echo -e "${BLUE}Docker Build Examples${NC}"
     echo ""
-    echo -e "${YELLOW}Suricata 8.x (main branch defaults):${NC}"
-    echo "docker build --build-arg SURICATA_VERSION=8.0.0 \\"
-    echo "             --build-arg ALPINE_VERSION=3.20 \\"
-    echo "             --build-arg RUST_VERSION=1.78.0 \\"
-    echo "             --build-arg PYTHON_VERSION=3.12 \\"
-    echo "             -f docker/Dockerfile -t suricata:8.0.0 ."
-    echo ""
-    echo -e "${YELLOW}Suricata 7.x (suricata-7.x branch defaults):${NC}"
+    echo -e "${YELLOW}Suricata 7.x (main branch defaults - stable/default):${NC}"
     echo "docker build --build-arg SURICATA_VERSION=7.0.11 \\"
     echo "             --build-arg ALPINE_VERSION=3.19 \\"
     echo "             --build-arg RUST_VERSION=1.70.0 \\"
     echo "             --build-arg PYTHON_VERSION=3.11 \\"
     echo "             -f docker/Dockerfile -t suricata:7.0.11 ."
+    echo ""
+    echo -e "${YELLOW}Suricata 8.x (suricata-8.x branch defaults):${NC}"
+    echo "docker build --build-arg SURICATA_VERSION=8.0.0 \\"
+    echo "             --build-arg ALPINE_VERSION=3.20 \\"
+    echo "             --build-arg RUST_VERSION=1.78.0 \\"
+    echo "             --build-arg PYTHON_VERSION=3.12 \\"
+    echo "             -f docker/Dockerfile -t suricata:8.0.0 ."
     echo ""
 }
 
@@ -133,9 +133,9 @@ validate_version() {
     echo -e "${BOLD}Validating Suricata ${suricata_version}${NC}"
     echo ""
     
-    if [ "$major_version" != "8" ] && [ "$major_version" != "7" ]; then
+    if [ "$major_version" != "7" ] && [ "$major_version" != "8" ]; then
         echo -e "${RED}ERROR: Unsupported Suricata major version: ${major_version}${NC}"
-        echo "Supported versions: 8.x, 7.x"
+        echo "Supported versions: 7.x, 8.x"
         return 1
     fi
     
@@ -174,7 +174,7 @@ recommend_versions() {
     echo -e "${BOLD}Version Recommendations for Suricata ${suricata_version}${NC}"
     echo ""
     
-    if [ "$major_version" != "8" ] && [ "$major_version" != "7" ]; then
+    if [ "$major_version" != "7" ] && [ "$major_version" != "8" ]; then
         echo -e "${RED}ERROR: Unsupported Suricata major version: ${major_version}${NC}"
         return 1
     fi
