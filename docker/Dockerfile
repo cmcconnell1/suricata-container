@@ -18,7 +18,7 @@
 # -----------------------------------------------------------------------------
 # This stage contains all build dependencies and compiles Suricata.
 # The compiled binaries will be copied to the runtime stage.
-ARG ALPINE_VERSION=3.20
+ARG ALPINE_VERSION=3.19
 FROM alpine:${ALPINE_VERSION} AS builder
 
 # Install build dependencies
@@ -65,8 +65,8 @@ RUN apk add --no-cache \
 # SURICATA COMPILATION: Download, configure, and build Suricata from source
 # -----------------------------------------------------------------------------
 # Download and compile Suricata with optimized settings for container deployment
-ARG SURICATA_VERSION=8.0.0
-ARG RUST_VERSION=1.78.0
+ARG SURICATA_VERSION=7.0.11
+ARG RUST_VERSION=1.70.0
 RUN mkdir -p /usr/src/suricata && \
     cd /usr/src/suricata && \
     # Download and extract Suricata source code
