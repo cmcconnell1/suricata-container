@@ -160,10 +160,15 @@ jobs:
               BRANCH_NAME="$CIRCLE_BRANCH"
             fi
 
-            # Save image with descriptive filename
+            # Tag image with descriptive name before saving
+            DESCRIPTIVE_TAG="suricata:v${VERSION}-${BRANCH_NAME}-${CIRCLE_SHA1:0:7}"
+            echo "Tagging image as: $DESCRIPTIVE_TAG"
+            docker tag suricata:latest "$DESCRIPTIVE_TAG"
+
+            # Save image with descriptive filename and tag
             ARTIFACT_NAME="suricata-v${VERSION}-${BRANCH_NAME}-${CIRCLE_SHA1:0:7}.tar"
             echo "Saving Docker image as: $ARTIFACT_NAME"
-            docker save -o workspace/suricata.tar suricata:latest
+            docker save -o workspace/suricata.tar "$DESCRIPTIVE_TAG"
 
             # Create metadata file for the artifact
             echo "{" > workspace/build-info.json
