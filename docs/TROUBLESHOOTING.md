@@ -6,6 +6,54 @@ The container has been successfully built and tested! Most common issues have be
 
 ## Common Issues
 
+### Container Health Check Failures
+
+If your container shows as "unhealthy":
+
+```bash
+# Check health status
+docker inspect --format='{{.State.Health.Status}}' suricata
+
+# View detailed health check logs
+docker inspect --format='{{json .State.Health}}' suricata
+```
+
+**Common health check issues and solutions:**
+
+#### **"Suricata control socket not responding" (older images)**
+- **Cause**: Missing suricatasc Python module or control socket not configured
+- **Error**: `ModuleNotFoundError: No module named 'suricata.sc'`
+- **Solution**: Use newer images (post-July 2025) with fixed health checks
+- **Workaround**: Manually update healthcheck.sh in running container
+
+#### **"Suricata logs not being updated" (older images)**
+- **Cause**: Overly strict log activity check (expected updates every 5 minutes)
+- **Issue**: Health check failed even when Suricata was running normally
+- **Solution**: Updated health check uses process responsiveness instead of log activity
+
+#### **"Process in bad state" (older images)**
+- **Cause**: BusyBox ps compatibility issues in Alpine Linux
+- **Error**: `ps: unrecognized option: p` or empty process state
+- **Solution**: Health check now uses `kill -0` signal test instead of `ps -o stat`
+
+#### **Current Health Check Validation (fixed versions)**
+The updated health check validates:
+- ✅ Suricata process is running (`pgrep -x "suricata"`)
+- ✅ Process responds to signals (`kill -0 $PID`)
+- ✅ Log directory exists and is writable
+- ✅ Main log file is created
+
+**Manual health check test:**
+```bash
+# Test the health check manually
+docker exec suricata /usr/local/bin/healthcheck.sh
+
+# Expected output for healthy container:
+# HEALTH CHECK PASSED: Suricata is running and healthy
+```
+
+### Container Startup Issues
+
 **Suricata fails to start**
 - Check capabilities (`NET_ADMIN` and `NET_RAW`)
 - Verify interface exists in container
@@ -80,6 +128,49 @@ docker inspect suricata:latest | grep -A 10 "BuildArgs"
 
 ## Debugging
 
+### Health Check Debugging
+
+**Check health check script version:**
+```bash
+# View current health check script
+docker exec suricata cat /usr/local/bin/healthcheck.sh | head -20
+
+# Look for version indicators:
+# - Old version: contains "suricatasc -c uptime"
+# - New version: contains "kill -0" and no suricatasc dependency
+```
+
+**Manual health check components:**
+```bash
+# Test individual health check components
+docker exec suricata sh -c '
+  echo "1. Process check:"
+  pgrep -x "suricata" && echo "✅ Process found" || echo "❌ Process not found"
+
+  echo "2. Signal responsiveness:"
+  PID=$(pgrep -x "suricata")
+  kill -0 "$PID" 2>/dev/null && echo "✅ Process responsive" || echo "❌ Process not responsive"
+
+  echo "3. Log directory:"
+  [ -d /var/log/suricata ] && echo "✅ Log directory exists" || echo "❌ Log directory missing"
+
+  echo "4. Main log file:"
+  [ -f /var/log/suricata/suricata.log ] && echo "✅ Log file exists" || echo "❌ Log file missing"
+'
+```
+
+**Update health check in running container (temporary fix):**
+```bash
+# Copy updated health check to running container
+docker cp scripts/healthcheck.sh suricata:/usr/local/bin/healthcheck.sh
+docker exec suricata chmod +x /usr/local/bin/healthcheck.sh
+
+# Test the updated health check
+docker exec suricata /usr/local/bin/healthcheck.sh
+```
+
+### General Debugging
+
 Run in foreground:
 ```sh
 docker run --rm -it --cap-add=NET_ADMIN --cap-add=NET_RAW \
@@ -90,6 +181,18 @@ docker run --rm -it --cap-add=NET_ADMIN --cap-add=NET_RAW \
 Test configuration:
 ```sh
 docker exec suricata suricata -T -c /etc/suricata/suricata.yaml
+```
+
+Check Suricata process status:
+```bash
+# View running processes
+docker exec suricata ps aux | grep suricata
+
+# Check Suricata logs
+docker exec suricata tail -f /var/log/suricata/suricata.log
+
+# Check for errors in logs
+docker exec suricata grep -i error /var/log/suricata/suricata.log
 ```
 
 ## Resources
