@@ -195,6 +195,7 @@ jobs:
       # CircleCI retains artifacts for 30 days by default
       # This allows keeping the last 5-10 container images as artifacts
       # Artifacts are accessible via CircleCI web UI and API
+      # Config verified clean - no duplicate destination lines
 
   scan:
     executor: suricata-builder
