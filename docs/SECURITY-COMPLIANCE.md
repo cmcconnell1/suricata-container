@@ -33,6 +33,8 @@ Tests   Trivy   Controlled
 **Scan Configuration:**
 ```bash
 trivy image --security-checks vuln,config --exit-code 1 --severity CRITICAL suricata:latest
+# or using image ID
+trivy image --security-checks vuln,config --exit-code 1 --severity CRITICAL d5af216ef2d4
 ```
 
 **Scan Parameters:**
