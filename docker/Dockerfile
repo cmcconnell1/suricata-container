@@ -149,6 +149,9 @@ COPY --from=builder /usr/bin/suricata-update /usr/bin/suricata-update
 # Copy default Suricata configuration
 COPY --from=builder /etc/suricata /etc/suricata
 
+# Copy libhtp library conditionally (needed for Suricata 7.x, built-in for 8.x)
+COPY --from=builder /usr/lib/libhtp* /usr/lib/
+
 # -----------------------------------------------------------------------------
 # PYTHON DEPENDENCIES: Install suricata-update in runtime stage
 # -----------------------------------------------------------------------------
