@@ -321,12 +321,33 @@ Successfully built Docker images are available as **CircleCI artifacts** with 30
 # Load the downloaded image
 docker load -i suricata-v7.0.11-main-stable-a1b2c3d.tar
 
-# Verify the loaded image
+# Verify the loaded image - you'll see descriptive tags
 docker images | grep suricata
+# Example output:
+# suricata   v7.0.11-main-stable-a1b2c3d   d5af216ef2d4   35 minutes ago   252MB
 
-# Run the container
-docker run -d --name suricata --cap-add=NET_ADMIN --cap-add=NET_RAW suricata:latest -i eth0
+# Run the container using the descriptive tag
+docker run -d --name suricata \
+  --cap-add=NET_ADMIN --cap-add=NET_RAW \
+  suricata:v7.0.11-main-stable-a1b2c3d -i eth0
+
+# Or tag it as latest for convenience
+docker tag suricata:v7.0.11-main-stable-a1b2c3d suricata:latest
+docker run -d --name suricata \
+  --cap-add=NET_ADMIN --cap-add=NET_RAW \
+  suricata:latest -i eth0
 ```
+
+#### **Image Tag Format**
+Downloaded images include descriptive tags that identify:
+- **Version**: Suricata version (e.g., `v7.0.11`, `v8.0.0`)
+- **Branch**: Source branch (`main-stable`, `suricata-8.x`, `suricata-7.x`)
+- **Commit**: Short commit hash (e.g., `a1b2c3d`)
+
+**Tag examples:**
+- `suricata:v7.0.11-main-stable-a1b2c3d` (main branch)
+- `suricata:v8.0.0-suricata-8.x-b2c3d4e` (8.x branch)
+- `suricata:v7.0.11-suricata-7.x-c3d4e5f` (7.x branch)
 
 #### **Available Artifact Types**
 - **Docker Image**: `suricata-v{version}-{branch}-{commit}.tar`
