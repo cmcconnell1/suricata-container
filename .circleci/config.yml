@@ -141,7 +141,9 @@ jobs:
       - run:
           name: Save image artifact
           command: |
+            echo "Creating workspace directory and saving artifacts..."
             mkdir -p workspace
+            ls -la workspace || echo "Workspace directory created"
 
             # Determine version and artifact naming based on branch
             if [ "$CIRCLE_BRANCH" = "main" ]; then
@@ -176,21 +178,33 @@ jobs:
             echo "Build metadata:"
             cat workspace/build-info.json
 
+            # Create properly named artifact files for CircleCI
+            FINAL_IMAGE_NAME="suricata-${CIRCLE_BRANCH}-${CIRCLE_SHA1:0:7}.tar"
+            FINAL_INFO_NAME="suricata-${CIRCLE_BRANCH}-${CIRCLE_SHA1:0:7}-info.json"
+
+            echo "Creating final artifact files:"
+            echo "Image: ${FINAL_IMAGE_NAME}"
+            echo "Info: ${FINAL_INFO_NAME}"
+
+            cp workspace/suricata.tar "workspace/${FINAL_IMAGE_NAME}"
+            cp workspace/build-info.json "workspace/${FINAL_INFO_NAME}"
+
+            echo "Workspace contents:"
+            ls -la workspace/
+            echo "Artifact files ready for storage"
+
       - persist_to_workspace:
           root: workspace
           paths:
             - suricata.tar
             - build-info.json
+            - suricata-*.tar
+            - suricata-*.json
 
-      # Store Docker image as artifact with version-specific naming
+      # Store all artifacts from workspace
       - store_artifacts:
-          path: workspace/suricata.tar
-          destination: container-images/suricata-${CIRCLE_BRANCH}-${CIRCLE_SHA1:0:7}.tar
-
-      # Store build metadata as artifact
-      - store_artifacts:
-          path: workspace/build-info.json
-          destination: container-images/suricata-${CIRCLE_BRANCH}-${CIRCLE_SHA1:0:7}-info.json
+          path: workspace
+          destination: container-images
 
       # CircleCI retains artifacts for 30 days by default
       # This allows keeping the last 5-10 container images as artifacts
