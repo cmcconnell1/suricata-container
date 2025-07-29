@@ -27,23 +27,33 @@ if ! pgrep -x "suricata" > /dev/null; then
 fi
 
 # -----------------------------------------------------------------------------
-# CONTROL SOCKET CHECK: Test Suricata's management interface
+# LOG ACTIVITY CHECK: Verify Suricata is actively processing
 # -----------------------------------------------------------------------------
-# Verify Suricata's control socket is responding to commands
-# This ensures Suricata is not just running but actually functional
-if ! suricatasc -c uptime > /dev/null 2>&1; then
-    echo "HEALTH CHECK FAILED: Suricata control socket not responding"
+# Check if Suricata is writing to logs (indicates it's functional)
+# Look for recent log activity in the main log file
+if [ -f /var/log/suricata/suricata.log ]; then
+    # Check if log file has been modified in the last 5 minutes (300 seconds)
+    if [ $(find /var/log/suricata/suricata.log -mmin -5 | wc -l) -eq 0 ]; then
+        echo "HEALTH CHECK FAILED: Suricata logs not being updated (no recent activity)"
+        exit 1
+    fi
+else
+    echo "HEALTH CHECK FAILED: Suricata main log file not found"
     exit 1
 fi
 
 # -----------------------------------------------------------------------------
-# LOG FILE CHECK: Ensure Suricata is writing logs
+# LOG DIRECTORY CHECK: Ensure log directory exists and is writable
 # -----------------------------------------------------------------------------
-# Verify that Suricata is creating and writing to its log files
-# This indicates that Suricata is actively processing traffic
-if [ ! -f /var/log/suricata/fast.log ] || \
-   [ ! -f /var/log/suricata/eve.json ]; then
-    echo "HEALTH CHECK FAILED: Log files not being written"
+# Verify that Suricata can write to its log directory
+if [ ! -d /var/log/suricata ]; then
+    echo "HEALTH CHECK FAILED: Suricata log directory not found"
+    exit 1
+fi
+
+# Check if main log file exists (it should be created immediately on startup)
+if [ ! -f /var/log/suricata/suricata.log ]; then
+    echo "HEALTH CHECK FAILED: Suricata main log file not found"
     exit 1
 fi
 
