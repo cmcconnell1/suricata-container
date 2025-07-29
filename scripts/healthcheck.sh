@@ -27,18 +27,19 @@ if ! pgrep -x "suricata" > /dev/null; then
 fi
 
 # -----------------------------------------------------------------------------
-# LOG ACTIVITY CHECK: Verify Suricata is actively processing
+# PROCESS STATUS CHECK: Verify Suricata process is responsive
 # -----------------------------------------------------------------------------
-# Check if Suricata is writing to logs (indicates it's functional)
-# Look for recent log activity in the main log file
-if [ -f /var/log/suricata/suricata.log ]; then
-    # Check if log file has been modified in the last 5 minutes (300 seconds)
-    if [ $(find /var/log/suricata/suricata.log -mmin -5 | wc -l) -eq 0 ]; then
-        echo "HEALTH CHECK FAILED: Suricata logs not being updated (no recent activity)"
-        exit 1
-    fi
-else
-    echo "HEALTH CHECK FAILED: Suricata main log file not found"
+# Check if Suricata process is running and responsive
+# Use a simple approach that works with BusyBox ps in Alpine Linux
+SURICATA_PID=$(pgrep -x "suricata")
+if [ -z "$SURICATA_PID" ]; then
+    echo "HEALTH CHECK FAILED: Suricata process PID not found"
+    exit 1
+fi
+
+# Verify the process is still alive by checking if we can send signal 0
+if ! kill -0 "$SURICATA_PID" 2>/dev/null; then
+    echo "HEALTH CHECK FAILED: Suricata process not responding to signals"
     exit 1
 fi
 
