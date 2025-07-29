@@ -551,7 +551,7 @@ Detailed documentation is available in the `docs/` directory:
 
 - **[SETUP.md](docs/SETUP.md)** - Installation and setup instructions
 - **[USAGE.md](docs/USAGE.md)** - Container usage and configuration
-- **[TROUBLESHOOTING.md](docs/TROUBLESHOOTING.md)** - Common issues and solutions
+- **[TROUBLESHOOTING.md](docs/TROUBLESHOOTING.md)** - Common issues and solutions (includes health check fixes)
 
 ## References
 
