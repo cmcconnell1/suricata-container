@@ -336,10 +336,16 @@ workflows:
   # Main workflow for Suricata 7.x (main branch - default/stable)
   build_scan_deploy_7x:
     jobs:
-      - build
+      - build:
+          filters:
+            branches:
+              only: main
       - scan:
           requires:
             - build
+          filters:
+            branches:
+              only: main
       - push:
           requires:
             - scan
@@ -350,10 +356,16 @@ workflows:
   # Workflow for Suricata 8.x (suricata-8.x branch - latest features)
   build_scan_deploy_8x:
     jobs:
-      - build
+      - build:
+          filters:
+            branches:
+              only: suricata-8.x
       - scan:
           requires:
             - build
+          filters:
+            branches:
+              only: suricata-8.x
       - push:
           requires:
             - scan
@@ -364,10 +376,16 @@ workflows:
   # Legacy workflow for Suricata 7.x (suricata-7.x branch - same as main)
   build_scan_deploy_7x_legacy:
     jobs:
-      - build
+      - build:
+          filters:
+            branches:
+              only: suricata-7.x
       - scan:
           requires:
             - build
+          filters:
+            branches:
+              only: suricata-7.x
       - push:
           requires:
             - scan
