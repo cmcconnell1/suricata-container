@@ -303,14 +303,18 @@ The CircleCI pipeline automatically:
 
 Successfully built Docker images are available as **CircleCI artifacts** with 30-day retention:
 
+#### **Repository Access**
+- **Bitbucket Repository**: `https://bitbucket.org/cis-devops/suricata-container`
+- **CircleCI Project**: `https://circleci.com/gh/cis-devops/suricata-container`
+
 #### **Download from CircleCI Web UI**
-1. Go to [CircleCI Project](https://circleci.com/gh/your-org/suricata-container)
+1. Go to [CircleCI Project](https://circleci.com/gh/cis-devops/suricata-container)
 2. Select the desired build from your target branch:
    - **main branch**: Suricata 7.x (stable, recommended)
    - **suricata-8.x branch**: Suricata 8.x (latest features)
    - **suricata-7.x branch**: Suricata 7.x (legacy)
 3. Click on the **Artifacts** tab
-4. Download the `.tar` file (e.g., `suricata-v7.0.11-main-stable-a1b2c3d.tar`)
+4. Download the `.tar` file (e.g., `suricata-main-a1b2c3d.tar`)
 
 #### **Load and Use the Image**
 ```bash
@@ -451,6 +455,28 @@ The project includes a complete CircleCI pipeline that:
 ### Accessing Built Images
 
 Images are stored as CircleCI artifacts (see [Getting Built Images](#getting-built-images) section above).
+
+### Development Workflow
+
+#### Branch Management
+The project uses a multi-branch strategy with automatic CI/CD:
+
+- **main branch**: Stable Suricata 7.x builds (production-ready)
+- **suricata-8.x branch**: Latest Suricata 8.x builds (advanced features)
+- **suricata-7.x branch**: Legacy Suricata 7.x builds
+
+#### Pull Request Workflow
+When pushing to feature branches, Bitbucket will suggest creating pull requests:
+```bash
+git push origin suricata-8.x
+# Output: Create pull request for suricata-8.x:
+#         https://bitbucket.org/cis-devops/suricata-container/pull-requests/new?source=suricata-8.x&t=1
+```
+
+**Recommended workflow:**
+1. **Direct pushes** to main branches trigger immediate CI/CD builds
+2. **Pull requests** for code review and controlled integration
+3. **CircleCI builds** run automatically on all pushes and PRs
 
 ## Environment Variables
 
