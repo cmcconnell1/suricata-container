@@ -38,10 +38,10 @@ docker inspect --format='{{json .State.Health}}' suricata
 
 #### **Current Health Check Validation (fixed versions)**
 The updated health check validates:
-- ✅ Suricata process is running (`pgrep -x "suricata"`)
-- ✅ Process responds to signals (`kill -0 $PID`)
-- ✅ Log directory exists and is writable
-- ✅ Main log file is created
+- Suricata process is running (`pgrep -x "suricata"`)
+- Process responds to signals (`kill -0 $PID`)
+- Log directory exists and is writable
+- Main log file is created
 
 **Manual health check test:**
 ```bash
@@ -145,17 +145,17 @@ docker exec suricata cat /usr/local/bin/healthcheck.sh | head -20
 # Test individual health check components
 docker exec suricata sh -c '
   echo "1. Process check:"
-  pgrep -x "suricata" && echo "✅ Process found" || echo "❌ Process not found"
+  pgrep -x "suricata" && echo "PASS: Process found" || echo "FAIL: Process not found"
 
   echo "2. Signal responsiveness:"
   PID=$(pgrep -x "suricata")
-  kill -0 "$PID" 2>/dev/null && echo "✅ Process responsive" || echo "❌ Process not responsive"
+  kill -0 "$PID" 2>/dev/null && echo "PASS: Process responsive" || echo "FAIL: Process not responsive"
 
   echo "3. Log directory:"
-  [ -d /var/log/suricata ] && echo "✅ Log directory exists" || echo "❌ Log directory missing"
+  [ -d /var/log/suricata ] && echo "PASS: Log directory exists" || echo "FAIL: Log directory missing"
 
   echo "4. Main log file:"
-  [ -f /var/log/suricata/suricata.log ] && echo "✅ Log file exists" || echo "❌ Log file missing"
+  [ -f /var/log/suricata/suricata.log ] && echo "PASS: Log file exists" || echo "FAIL: Log file missing"
 '
 ```
 
