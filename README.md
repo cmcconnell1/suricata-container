@@ -13,6 +13,7 @@ CIS Albert Suricata Docker container IDS/IPS with **Suricata 7.x as the stable d
 - [Building and Testing](#building-and-testing)
 - [CI/CD Pipeline](#cicd-pipeline)
 - [Getting Built Images](#getting-built-images)
+- [Security and Compliance](#security-and-compliance)
 - [Documentation](#documentation)
 - [Development](#development)
 - [Troubleshooting](#troubleshooting)
@@ -545,6 +546,25 @@ docker inspect --format='{{json .State.Health}}' suricata
 docker exec suricata /usr/local/bin/update-rules.sh
 ```
 
+## Security and Compliance
+
+This project implements comprehensive security measures throughout the CI/CD pipeline:
+
+### Security Features
+- **Automated Vulnerability Scanning**: Trivy security scanning on every build
+- **Critical Vulnerability Blocking**: Pipeline fails on critical security issues
+- **Container Hardening**: Alpine Linux base with minimal attack surface
+- **Capability Management**: Precise privilege assignment with libcap
+- **Multi-stage Builds**: Isolated build and runtime environments
+
+### Compliance Process
+- **Security Gates**: Mandatory security validation before deployment
+- **Audit Trail**: Complete build metadata and traceability
+- **Access Control**: SSH key-based authentication and authorization
+- **Vulnerability Response**: Automated detection and blocking of critical issues
+
+For complete security architecture and compliance details, see **[SECURITY-COMPLIANCE.md](docs/SECURITY-COMPLIANCE.md)**.
+
 ## Documentation
 
 Detailed documentation is available in the `docs/` directory:
@@ -552,6 +572,7 @@ Detailed documentation is available in the `docs/` directory:
 - **[SETUP.md](docs/SETUP.md)** - Installation and setup instructions
 - **[USAGE.md](docs/USAGE.md)** - Container usage and configuration
 - **[TROUBLESHOOTING.md](docs/TROUBLESHOOTING.md)** - Common issues and solutions (includes health check fixes)
+- **[SECURITY-COMPLIANCE.md](docs/SECURITY-COMPLIANCE.md)** - Security architecture and compliance processes
 
 ## References
 
