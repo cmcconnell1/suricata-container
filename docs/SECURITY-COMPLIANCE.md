@@ -2,17 +2,17 @@
 
 ## Overview
 
-This document outlines the comprehensive security and compliance processes implemented in the Suricata container project's CI/CD pipeline. Our security-first approach ensures that all container images undergo rigorous security validation before deployment.
+This document outlines the comprehensive security and compliance processes implemented in the Suricata container project's CI/CD pipeline. Our security-first approach ensures that all container images undergo rigorous security validation before deployment to AWS ECR.
 
 ## Security Architecture
 
 ### Pipeline Security Model
 
 ```
-BUILD → SCAN → ARTIFACT/PUSH
+BUILD → SCAN → ECR DEPLOY
   ↓       ↓         ↓
-Tests   Trivy   Controlled
-        Scan    Deployment
+Tests   Trivy   AWS ECR Push
+        Scan    (Temp Creds)
 ```
 
 **Security Gates:**
@@ -20,6 +20,7 @@ Tests   Trivy   Controlled
 - All images must pass vulnerability scanning
 - No deployment without security validation
 - Critical vulnerabilities block pipeline progression
+- Temporary AWS credentials via IAM role assumption
 
 ## Vulnerability Management
 
@@ -59,34 +60,54 @@ trivy image --security-checks vuln,config --exit-code 1 --severity CRITICAL d5af
 
 ## Access Control and Authentication
 
-### Repository Access Management
+### AWS ECR Authentication
 
-**SSH Key Authentication:**
-- **Environment Variable:** `SSH_KEY_FINGERPRINT`
-- **Scope:** All pipeline stages (build, scan, push)
-- **Management:** Centralized through CircleCI project settings
-- **Security:** Encrypted key storage and rotation capability
+**Temporary Credentials via IAM Role:**
+- **IAM Role:** `arn:aws:iam::339712848218:role/DevOps-Suricata-ECR-Push-Role`
+- **Method:** STS assume-role-with-web-identity
+- **Duration:** Temporary credentials with automatic expiration
+- **Scope:** ECR push permissions only
+
+**Security Benefits:**
+- **No Long-term Secrets:** No AWS keys stored in CircleCI
+- **Automatic Rotation:** Credentials expire automatically
+- **Principle of Least Privilege:** Role-based access with minimal permissions
+- **Audit Trail:** Complete CloudTrail logging of all actions
 
 **Access Control Points:**
-- Source code checkout
-- Workspace attachment
-- Docker image operations
-- Artifact storage
+- Source code checkout (SSH key)
+- AWS ECR authentication (temporary credentials)
+- Docker image operations (IAM role permissions)
+- ECR repository access (resource-based policies)
 
-### Planned AWS Integration
+### ECR Deployment Configuration
 
-**Future Enhancement - AWS ECR:**
-```yaml
-Environment Variables:
-- AWS_ACCESS_KEY_ID: IAM-based access control
-- AWS_SECRET_ACCESS_KEY: Secure credential management
+**Target Repository:**
+- **Registry:** `339712848218.dkr.ecr.us-east-1.amazonaws.com`
+- **Repository:** `ecoe/pe/engineering/suricata`
+- **Region:** `us-east-1`
+- **Authentication:** Temporary credentials via CircleCI OIDC
+
+**IAM Role Permissions:**
+```json
+{
+    "Version": "2012-10-17",
+    "Statement": [
+        {
+            "Effect": "Allow",
+            "Action": [
+                "ecr:GetAuthorizationToken",
+                "ecr:BatchCheckLayerAvailability",
+                "ecr:InitiateLayerUpload",
+                "ecr:UploadLayerPart",
+                "ecr:CompleteLayerUpload",
+                "ecr:PutImage"
+            ],
+            "Resource": "arn:aws:ecr:us-east-1:339712848218:repository/ecoe/pe/engineering/suricata"
+        }
+    ]
+}
 ```
-
-**Benefits:**
-- Enhanced security with AWS IAM policies
-- Fine-grained access control
-- Audit logging through CloudTrail
-- Integration with AWS security services
 
 ## Container Security Hardening
 

@@ -300,63 +300,78 @@ The CircleCI pipeline automatically:
 
 ## Getting Built Images
 
-### CircleCI Artifacts (Current Method)
+### AWS ECR Registry (Current Method)
 
-Successfully built Docker images are available as **CircleCI artifacts** with 30-day retention:
+Successfully built Docker images are automatically deployed to **AWS ECR** with persistent storage:
 
-#### **Repository Access**
-- **Bitbucket Repository**: `https://bitbucket.org/cis-devops/suricata-container`
-- **CircleCI Project**: `https://circleci.com/gh/cis-devops/suricata-container`
+#### **Repository Information**
+- **ECR Registry**: `339712848218.dkr.ecr.us-east-1.amazonaws.com/ecoe/pe/engineering/suricata`
+- **Region**: `us-east-1`
+- **Authentication**: AWS CLI required for access
 
-#### **Download from CircleCI Web UI**
-1. Go to [CircleCI Project](https://circleci.com/gh/cis-devops/suricata-container)
-2. Select the desired build from your target branch:
-   - **main branch**: Suricata 7.x (stable, recommended)
-   - **suricata-8.x branch**: Suricata 8.x (latest features)
-   - **suricata-7.x branch**: Suricata 7.x (legacy)
-3. Click on the **Artifacts** tab
-4. Download the `.tar` file (e.g., `suricata-main-a1b2c3d.tar`)
+#### **Accessing Images from ECR**
 
-#### **Load and Use the Image**
+**1. Authenticate with ECR**
 ```bash
-# Load the downloaded image
-docker load -i suricata-v7.0.11-main-stable-a1b2c3d.tar
+# Login to ECR (requires AWS CLI configured)
+aws ecr get-login-password --region us-east-1 | \
+  docker login --username AWS --password-stdin 339712848218.dkr.ecr.us-east-1.amazonaws.com
+```
 
-# Verify the loaded image - you'll see descriptive tags
-docker images | grep suricata
-# Example output:
-# suricata   v7.0.11-main-stable-a1b2c3d   d5af216ef2d4   35 minutes ago   252MB
+**2. Pull Images**
+```bash
+# Pull specific version (recommended)
+docker pull 339712848218.dkr.ecr.us-east-1.amazonaws.com/ecoe/pe/engineering/suricata:v7.0.11-main-stable
 
-# Run the container using the descriptive tag
+# Pull latest from specific branch
+docker pull 339712848218.dkr.ecr.us-east-1.amazonaws.com/ecoe/pe/engineering/suricata:main-latest
+
+# Pull Suricata 8.x latest
+docker pull 339712848218.dkr.ecr.us-east-1.amazonaws.com/ecoe/pe/engineering/suricata:v8.0.0-latest
+
+# Pull legacy 7.x
+docker pull 339712848218.dkr.ecr.us-east-1.amazonaws.com/ecoe/pe/engineering/suricata:v7.0.11-legacy
+```
+
+**3. Run Container**
+```bash
+# Run with full ECR path
 docker run -d --name suricata \
   --cap-add=NET_ADMIN --cap-add=NET_RAW \
-  suricata:v7.0.11-main-stable-a1b2c3d -i eth0
+  339712848218.dkr.ecr.us-east-1.amazonaws.com/ecoe/pe/engineering/suricata:v7.0.11-main-stable -i eth0
 
-# Or tag it as latest for convenience
-docker tag suricata:v7.0.11-main-stable-a1b2c3d suricata:latest
+# Or tag for convenience
+docker tag 339712848218.dkr.ecr.us-east-1.amazonaws.com/ecoe/pe/engineering/suricata:v7.0.11-main-stable suricata:latest
 docker run -d --name suricata \
   --cap-add=NET_ADMIN --cap-add=NET_RAW \
   suricata:latest -i eth0
 ```
 
-#### **Image Tag Format**
-Downloaded images include descriptive tags that identify:
-- **Version**: Suricata version (e.g., `v7.0.11`, `v8.0.0`)
-- **Branch**: Source branch (`main-stable`, `suricata-8.x`, `suricata-7.x`)
-- **Commit**: Short commit hash (e.g., `a1b2c3d`)
+#### **Available Image Tags**
 
-**Tag examples:**
-- `suricata:v7.0.11-main-stable-a1b2c3d` (main branch)
-- `suricata:v8.0.0-suricata-8.x-b2c3d4e` (8.x branch)
-- `suricata:v7.0.11-suricata-7.x-c3d4e5f` (7.x branch)
+Each build creates multiple tags for flexible deployment:
 
-#### **Available Artifact Types**
-- **Docker Image**: `suricata-v{version}-{branch}-{commit}.tar`
-- **Build Metadata**: `suricata-v{version}-{branch}-{commit}-info.json`
+**Main Branch (Stable - Recommended)**
+- `v7.0.11-main-stable` - Primary stable tag
+- `v7.0.11-main-{commit}` - Commit-specific tag
+- `main-latest` - Latest from main branch
 
-### Future: AWS ECR Registry (Planned)
+**Suricata 8.x Branch (Latest Features)**
+- `v8.0.0-latest` - Primary 8.x tag
+- `v8.0.0-suricata-8.x-{commit}` - Commit-specific tag
+- `suricata-8.x-latest` - Latest from 8.x branch
 
-**Note**: This project will be refactored to push images to AWS ECR for easier access. Until then, CircleCI artifacts provide reliable access to all built images.
+**Suricata 7.x Legacy Branch**
+- `v7.0.11-legacy` - Legacy 7.x tag
+- `v7.0.11-suricata-7.x-{commit}` - Commit-specific tag
+- `suricata-7.x-latest` - Latest from legacy branch
+
+#### **ECR Benefits**
+- **Persistent Storage**: No expiration limits (unlike CircleCI artifacts)
+- **Native Docker Registry**: Standard `docker pull` commands
+- **Built-in Vulnerability Scanning**: ECR automatically scans images
+- **IAM Integration**: Fine-grained access control
+- **Global Availability**: Multi-region replication support
 
 ### Image Information
 
@@ -458,25 +473,33 @@ The project includes a complete CircleCI pipeline that:
 1. **Builds** the Docker image with multi-stage optimization and layer caching
 2. **Tests** the built image functionality (version check, suricata-update, configuration)
 3. **Scans** for security vulnerabilities using Trivy
-4. **Stores** Docker images as CircleCI artifacts with 30-day retention
+4. **Deploys** Docker images to AWS ECR with temporary credentials
 
 ### Pipeline Features
 
 - **Multi-Version Support**: Automatic version detection based on branch
-- **Smart Naming**: Version-specific artifact names with metadata
-- **Build Information**: JSON metadata with version, size, and commit details
+- **AWS ECR Deployment**: Images pushed to `339712848218.dkr.ecr.us-east-1.amazonaws.com/ecoe/pe/engineering/suricata`
+- **Temporary Credentials**: Uses IAM role assumption for secure AWS access
+- **Multiple Tags**: Version-specific, branch-specific, and commit-specific tags
 - **Security Scanning**: Trivy vulnerability scanning with CRITICAL exit codes
-- **Artifact Retention**: 30-day storage for recent builds
+- **Zero Long-term Secrets**: No AWS keys stored in CircleCI
+
+### Security Architecture
+
+- **IAM Role**: `arn:aws:iam::339712848218:role/DevOps-Suricata-ECR-Push-Role`
+- **Temporary Credentials**: Automatic credential rotation and expiration
+- **Vulnerability Blocking**: Critical security issues prevent deployment
+- **ECR Integration**: Native AWS container registry with built-in scanning
 
 ### Setup CI/CD
 
 1. Connect your repository to CircleCI
-2. Set environment variables:
-   - `SSH_KEY_FINGERPRINT` - SSH key fingerprint for repository access
+2. **No environment variables required** - uses IAM role for authentication
+3. Ensure IAM role has ECR push permissions
 
 ### Accessing Built Images
 
-Images are stored as CircleCI artifacts (see [Getting Built Images](#getting-built-images) section above).
+Images are available in AWS ECR (see [Getting Built Images](#getting-built-images) section above).
 
 ### Development Workflow
 

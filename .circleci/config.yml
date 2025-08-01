@@ -2,45 +2,43 @@
 # CIRCLECI CONFIGURATION FOR SURICATA CONTAINER
 # =============================================================================
 # This configuration defines a complete CI/CD pipeline for building, testing,
-# scanning, and storing Suricata container images as artifacts.
+# scanning, and deploying Suricata container images to AWS ECR.
 #
 # Pipeline Stages:
 # 1. BUILD - Compile Suricata container from source with multi-stage builds
 # 2. SCAN - Security vulnerability scanning with Trivy
-# 3. ARTIFACT - Store Docker images as CircleCI artifacts (30-day retention)
+# 3. DEPLOY - Push Docker images to AWS ECR with temporary credentials
 #
 # Multi-Version Support:
 # - main branch: Suricata 7.x (stable, production-ready)
 # - suricata-8.x branch: Suricata 8.x (latest features)
-# - suricata-7.x branch: Suricata 7.x (legacy branch)
+# - suricata-7.x branch: Suricata 7.x (legacy support)
 #
-# Artifact Storage:
-# - Docker images stored as .tar files with version-specific naming
-# - Build metadata stored as JSON with version, branch, and size info
-# - 30-day retention allows keeping recent builds for deployment
+# AWS ECR Deployment:
+# - Images pushed to: 339712848218.dkr.ecr.us-east-1.amazonaws.com/ecoe/pe/engineering/suricata
+# - Uses temporary credentials via IAM role assumption
+# - Multiple tags per image for version management
+# - Automatic vulnerability scanning in ECR
 #
-# Required Environment Variables (set in CircleCI project settings):
-# - SSH_KEY_FINGERPRINT: SSH key fingerprint for repository access
+# Security:
+# - Uses IAM role: arn:aws:iam::339712848218:role/DevOps-Suricata-ECR-Push-Role
+# - No long-term AWS credentials stored in CircleCI
+# - Temporary credentials with automatic expiration
+# - Trivy security scanning blocks critical vulnerabilities
 #
-# Future Enhancement:
-# TODO: Refactor to push to AWS ECR using CircleCI orb
-# - AWS_ACCESS_KEY_ID: AWS access key for ECR publishing
-# - AWS_SECRET_ACCESS_KEY: AWS secret key for ECR publishing
-# - AWS_DEFAULT_REGION: AWS region for ECR repository
+# Required Environment Variables: None (uses IAM role for authentication)
 # =============================================================================
 
 version: 2.1
 
-# -----------------------------------------------------------------------------
-# ORBS: External CircleCI extensions for common functionality
-# -----------------------------------------------------------------------------
 orbs:
+  # AWS ECR orb for container registry operations
+  aws-ecr: circleci/aws-ecr@9.4.0
+  # AWS CLI orb for temporary credential management
+  aws-cli: circleci/aws-cli@5.1
   # Docker orb provides Docker-related commands and utilities
   docker: circleci/docker@2.2.0
 
-# -----------------------------------------------------------------------------
-# EXECUTORS: Define reusable execution environments
-# -----------------------------------------------------------------------------
 executors:
   # Standard build environment for Suricata container builds
   suricata-builder:
@@ -49,75 +47,41 @@ executors:
       - image: cimg/base:2023.03
     # Medium resource class provides sufficient CPU/memory for builds
     resource_class: medium
-    # Set consistent working directory
-    working_directory: ~/project
 
-# -----------------------------------------------------------------------------
-# JOBS: Define individual pipeline jobs
-# -----------------------------------------------------------------------------
 jobs:
-  # BUILD JOB: Compile Suricata container and run functionality tests
   build:
     executor: suricata-builder
+    parameters:
+      suricata-version:
+        type: string
+        default: "7.0.11"
+      alpine-version:
+        type: string
+        default: "3.19"
     steps:
-      # Check out source code from repository
       - checkout
-
-      # Add SSH keys for repository access (required for private repos)
-      - add_ssh_keys:
-          fingerprints:
-            - "${SSH_KEY_FINGERPRINT}"
-
-      # Set up Docker environment with layer caching for faster builds
       - setup_remote_docker:
           docker_layer_caching: true
-
-      # Install Docker tools and utilities
       - docker/install-docker-tools
-
-      # Build the Suricata container image with version-specific configuration
+      
+      # Build image with version-specific arguments
       - run:
-          name: Build Suricata image
+          name: Build Suricata container
           command: |
-            echo "Building Suricata container from source..."
-            echo "Branch: $CIRCLE_BRANCH"
-
-            # Determine build arguments based on branch
-            if [ "$CIRCLE_BRANCH" = "main" ]; then
-              # Main branch: Suricata 7.x (stable default)
-              echo "Building Suricata 7.x (stable) from main branch"
-              docker build -f docker/Dockerfile \
-                --build-arg SURICATA_VERSION=7.0.11 \
-                --build-arg ALPINE_VERSION=3.19 \
-                -t suricata:latest \
-                -t suricata:7.0.11 .
-            elif [ "$CIRCLE_BRANCH" = "suricata-8.x" ]; then
-              # Suricata 8.x branch: Latest features
-              echo "Building Suricata 8.x (latest features) from suricata-8.x branch"
-              docker build -f docker/Dockerfile \
-                --build-arg SURICATA_VERSION=8.0.0 \
-                --build-arg ALPINE_VERSION=3.20 \
-                -t suricata:latest \
-                -t suricata:8.0.0 .
-            elif [ "$CIRCLE_BRANCH" = "suricata-7.x" ]; then
-              # Legacy 7.x branch: Same as main
-              echo "Building Suricata 7.x (legacy branch) from suricata-7.x branch"
-              docker build -f docker/Dockerfile \
-                --build-arg SURICATA_VERSION=7.0.11 \
-                --build-arg ALPINE_VERSION=3.19 \
-                -t suricata:latest \
-                -t suricata:7.0.11 .
-            else
-              echo "Building default configuration for branch: $CIRCLE_BRANCH"
-              docker build -f docker/Dockerfile -t suricata:latest .
-            fi
-
-      # Run comprehensive functionality tests on the built image
+            echo "Building Suricata << parameters.suricata-version >> on Alpine << parameters.alpine-version >>"
+            
+            docker build \
+              --build-arg SURICATA_VERSION=<< parameters.suricata-version >> \
+              --build-arg ALPINE_VERSION=<< parameters.alpine-version >> \
+              -f docker/Dockerfile \
+              -t suricata:latest .
+      
+      # Run comprehensive functionality tests
       - run:
           name: Test built image
           command: |
             echo "Running container functionality tests..."
-
+            
             # Test 1: Version check - Verify Suricata binary works
             echo "Testing Suricata version..."
             docker run --rm --cap-add=NET_ADMIN --cap-add=NET_RAW --entrypoint="" \
@@ -137,223 +101,126 @@ jobs:
               echo "Configuration validation failed (expected in CI environment without network interfaces)"
               echo "This does not affect core Suricata functionality"
             fi
-      # Save Docker image as artifact with version-specific naming
+      
+      # Save image for next job
       - run:
-          name: Save image artifact
+          name: Save Docker image
           command: |
-            echo "Creating workspace directory and saving artifacts..."
-            mkdir -p workspace
-            ls -la workspace || echo "Workspace directory created"
-
-            # Determine version and artifact naming based on branch
-            if [ "$CIRCLE_BRANCH" = "main" ]; then
-              VERSION="7.0.11"
-              BRANCH_NAME="main-stable"
-            elif [ "$CIRCLE_BRANCH" = "suricata-8.x" ]; then
-              VERSION="8.0.0"
-              BRANCH_NAME="8x-latest"
-            elif [ "$CIRCLE_BRANCH" = "suricata-7.x" ]; then
-              VERSION="7.0.11"
-              BRANCH_NAME="7x-legacy"
-            else
-              VERSION="unknown"
-              BRANCH_NAME="$CIRCLE_BRANCH"
-            fi
-
-            # Tag image with descriptive name before saving
-            DESCRIPTIVE_TAG="suricata:v${VERSION}-${BRANCH_NAME}-${CIRCLE_SHA1:0:7}"
-            echo "Tagging image as: $DESCRIPTIVE_TAG"
-            docker tag suricata:latest "$DESCRIPTIVE_TAG"
-
-            # Save image with descriptive filename and tag
-            ARTIFACT_NAME="suricata-v${VERSION}-${BRANCH_NAME}-${CIRCLE_SHA1:0:7}.tar"
-            echo "Saving Docker image as: $ARTIFACT_NAME"
-            docker save -o workspace/suricata.tar "$DESCRIPTIVE_TAG"
-
-            # Create metadata file for the artifact
-            echo "{" > workspace/build-info.json
-            echo "  \"version\": \"$VERSION\"," >> workspace/build-info.json
-            echo "  \"branch\": \"$CIRCLE_BRANCH\"," >> workspace/build-info.json
-            echo "  \"commit\": \"${CIRCLE_SHA1:0:7}\"," >> workspace/build-info.json
-            echo "  \"build_date\": \"$(date -u +%Y-%m-%dT%H:%M:%SZ)\"," >> workspace/build-info.json
-            echo "  \"artifact_name\": \"$ARTIFACT_NAME\"," >> workspace/build-info.json
-            echo "  \"image_size\": \"$(docker images suricata:latest --format 'table {{.Size}}' | tail -n 1)\"" >> workspace/build-info.json
-            echo "}" >> workspace/build-info.json
-
-            echo "Build metadata:"
-            cat workspace/build-info.json
-
-            # Create properly named artifact files for CircleCI
-            FINAL_IMAGE_NAME="suricata-${CIRCLE_BRANCH}-${CIRCLE_SHA1:0:7}.tar"
-            FINAL_INFO_NAME="suricata-${CIRCLE_BRANCH}-${CIRCLE_SHA1:0:7}-info.json"
-
-            echo "Creating final artifact files:"
-            echo "Image: ${FINAL_IMAGE_NAME}"
-            echo "Info: ${FINAL_INFO_NAME}"
-
-            cp workspace/suricata.tar "workspace/${FINAL_IMAGE_NAME}"
-            cp workspace/build-info.json "workspace/${FINAL_INFO_NAME}"
-
-            echo "Workspace contents:"
-            ls -la workspace/
-            echo "Artifact files ready for storage"
-
+            docker save suricata:latest -o suricata.tar
+      
       - persist_to_workspace:
-          root: workspace
+          root: .
           paths:
             - suricata.tar
-            - build-info.json
-            - suricata-*.tar
-            - suricata-*.json
-
-      # Store all artifacts from workspace
-      - store_artifacts:
-          path: workspace
-          destination: container-images
-
-      # CircleCI retains artifacts for 30 days by default
-      # This allows keeping the last 5-10 container images as artifacts
-      # Artifacts are accessible via CircleCI web UI and API
-      # Config verified clean - no duplicate destination lines
 
   scan:
     executor: suricata-builder
     steps:
       - attach_workspace:
-          at: workspace
-      - add_ssh_keys:
-          fingerprints:
-            - "${SSH_KEY_FINGERPRINT}"
+          at: .
       - setup_remote_docker:
           docker_layer_caching: true
       - docker/install-docker-tools
+
+      # Load image from workspace
       - run:
           name: Load image
-          command: docker load -i workspace/suricata.tar
+          command: docker load -i suricata.tar
+
+      # Install and run Trivy security scan
       - run:
           name: Install Trivy
           command: |
             sudo apt-get update && sudo apt-get install -y wget apt-transport-https gnupg lsb-release
             wget -qO - https://aquasecurity.github.io/trivy-repo/deb/public.key | sudo apt-key add -
             echo deb https://aquasecurity.github.io/trivy-repo/deb $(lsb_release -sc) main | sudo tee -a /etc/apt/sources.list.d/trivy.list
-            sudo apt-get update
-            sudo apt-get install -y trivy
+            sudo apt-get update && sudo apt-get install -y trivy
+
       - run:
           name: Scan image with Trivy
           command: |
             trivy image --security-checks vuln,config --exit-code 1 --severity CRITICAL suricata:latest
 
-  push:
+      - persist_to_workspace:
+          root: .
+          paths:
+            - suricata.tar
+
+  push-to-ecr:
     executor: suricata-builder
+    parameters:
+      image-tag:
+        type: string
+      suricata-version:
+        type: string
     steps:
+      - checkout
       - attach_workspace:
-          at: workspace
-      - add_ssh_keys:
-          fingerprints:
-            - "${SSH_KEY_FINGERPRINT}"
+          at: .
       - setup_remote_docker:
           docker_layer_caching: true
-      - docker/install-docker-tools
+
+      # Load image from workspace
       - run:
           name: Load image
-          command: docker load -i workspace/suricata.tar
-      # TODO: Refactor to push to AWS ECR using CircleCI orb
-      # Reference: https://circleci.com/developer/orbs/orb/circleci/aws-ecr
-      # COMMENTED OUT: Docker Hub login (to be replaced with AWS ECR)
-      # - run:
-      #     name: Login to Docker Hub
-      #     command: |
-      #       echo "$DOCKERHUB_PASSWORD" | docker login -u "$DOCKERHUB_USERNAME" --password-stdin
-      # COMMENTED OUT: Docker Hub tag and push (to be replaced with AWS ECR)
-      # - run:
-      #     name: Tag and push image
-      #     command: |
-      #       # Determine version and tags based on branch
-      #       if [ "$CIRCLE_BRANCH" = "main" ]; then
-      #         # Main branch now defaults to Suricata 7.x (stable)
-      #         VERSION_TAG="7.0.11"
-      #         MAJOR_TAG="7"
-      #         LATEST_TAG="latest"
-      #       elif [ "$CIRCLE_BRANCH" = "suricata-8.x" ]; then
-      #         # Suricata 8.x branch (latest features)
-      #         VERSION_TAG="8.0.0"
-      #         MAJOR_TAG="8"
-      #         LATEST_TAG="8-latest"
-      #       elif [ "$CIRCLE_BRANCH" = "suricata-7.x" ]; then
-      #         # Legacy 7.x branch (same as main)
-      #         VERSION_TAG="7.0.11"
-      #         MAJOR_TAG="7"
-      #         LATEST_TAG="7-latest"
-      #       else
-      #         echo "Unknown branch: $CIRCLE_BRANCH"
-      #         exit 1
-      #       fi
-      #
-      #       # Tag the image with multiple tags
-      #       docker tag suricata:latest cis-devops/suricata:$VERSION_TAG
-      #       docker tag suricata:latest cis-devops/suricata:$MAJOR_TAG
-      #       docker tag suricata:latest cis-devops/suricata:$LATEST_TAG
-      #       docker tag suricata:latest cis-devops/suricata:${CIRCLE_SHA1:0:7}
-      #
-      #       # Push all tags
-      #       docker push cis-devops/suricata:$VERSION_TAG
-      #       docker push cis-devops/suricata:$MAJOR_TAG
-      #       docker push cis-devops/suricata:$LATEST_TAG
-      #       docker push cis-devops/suricata:${CIRCLE_SHA1:0:7}
-      #
-      #       echo "Pushed tags: $VERSION_TAG, $MAJOR_TAG, $LATEST_TAG, ${CIRCLE_SHA1:0:7}"
+          command: docker load -i suricata.tar
 
-      # Load build metadata for deployment information
+      # Tag image for ECR with multiple tags
       - run:
-          name: Display deployment information
+          name: Tag image for ECR
           command: |
-            echo "=== SURICATA CONTAINER BUILD COMPLETE ==="
-            echo "Container image built and ready for deployment"
-            echo ""
+            ECR_REGISTRY="339712848218.dkr.ecr.us-east-1.amazonaws.com"
+            REPO_NAME="ecoe/pe/engineering/suricata"
 
-            # Display build information
-            if [ -f workspace/build-info.json ]; then
-              echo "Build Information:"
-              cat workspace/build-info.json | jq '.'
-            else
-              echo "Branch: $CIRCLE_BRANCH"
-              echo "Commit: ${CIRCLE_SHA1:0:7}"
-            fi
+            # Create multiple tags for better image management
+            docker tag suricata:latest ${ECR_REGISTRY}/${REPO_NAME}:<< parameters.image-tag >>
+            docker tag suricata:latest ${ECR_REGISTRY}/${REPO_NAME}:v<< parameters.suricata-version >>-${CIRCLE_BRANCH}-${CIRCLE_SHA1:0:7}
+            docker tag suricata:latest ${ECR_REGISTRY}/${REPO_NAME}:${CIRCLE_BRANCH}-latest
 
-            echo ""
-            echo "=== ARTIFACT AVAILABILITY ==="
-            echo "Docker image available as CircleCI artifact:"
-            echo "- Artifact retention: 30 days"
-            echo "- Access via: CircleCI web UI > Artifacts tab"
-            echo "- Download via: CircleCI API"
-            echo ""
-            echo "=== NEXT STEPS ==="
-            echo "TODO: Implement AWS ECR push using CircleCI orb"
-            echo "Reference: https://circleci.com/developer/orbs/orb/circleci/aws-ecr"
-            echo ""
-            echo "For manual deployment:"
-            echo "1. Download artifact from CircleCI"
-            echo "2. Load with: docker load -i suricata-*.tar"
-            echo "3. Tag and push to your registry"
+            echo "Tagged images:"
+            echo "- ${ECR_REGISTRY}/${REPO_NAME}:<< parameters.image-tag >>"
+            echo "- ${ECR_REGISTRY}/${REPO_NAME}:v<< parameters.suricata-version >>-${CIRCLE_BRANCH}-${CIRCLE_SHA1:0:7}"
+            echo "- ${ECR_REGISTRY}/${REPO_NAME}:${CIRCLE_BRANCH}-latest"
+
+      # Push to ECR using temporary credentials via IAM role
+      - aws-ecr/build_and_push_image:
+          account_id: "339712848218"
+          region: "us-east-1"
+          repo: "ecoe/pe/engineering/suricata"
+          tag: "<< parameters.image-tag >>,v<< parameters.suricata-version >>-${CIRCLE_BRANCH}-${CIRCLE_SHA1:0:7},${CIRCLE_BRANCH}-latest"
+          skip_when_tags_exist: false
+          use_credentials_helper: false
+          auth:
+            - aws-cli/setup:
+                profile_name: "push-suricata-image"
+                role_arn: "arn:aws:iam::339712848218:role/DevOps-Suricata-ECR-Push-Role"
 
 workflows:
   version: 2
+
   # Main workflow for Suricata 7.x (main branch - default/stable)
   build_scan_deploy_7x:
     jobs:
       - build:
+          name: "build-7x-main"
+          suricata-version: "7.0.11"
+          alpine-version: "3.19"
           filters:
             branches:
               only: main
       - scan:
+          name: "scan-7x-main"
           requires:
-            - build
+            - "build-7x-main"
           filters:
             branches:
               only: main
-      - push:
+      - push-to-ecr:
+          name: "push-7x-main"
+          image-tag: "v7.0.11-main-stable"
+          suricata-version: "7.0.11"
           requires:
-            - scan
+            - "scan-7x-main"
           filters:
             branches:
               only: main
@@ -362,38 +229,52 @@ workflows:
   build_scan_deploy_8x:
     jobs:
       - build:
+          name: "build-8x"
+          suricata-version: "8.0.0"
+          alpine-version: "3.20"
           filters:
             branches:
               only: suricata-8.x
       - scan:
+          name: "scan-8x"
           requires:
-            - build
+            - "build-8x"
           filters:
             branches:
               only: suricata-8.x
-      - push:
+      - push-to-ecr:
+          name: "push-8x"
+          image-tag: "v8.0.0-latest"
+          suricata-version: "8.0.0"
           requires:
-            - scan
+            - "scan-8x"
           filters:
             branches:
               only: suricata-8.x
 
-  # Legacy workflow for Suricata 7.x (suricata-7.x branch - same as main)
+  # Legacy workflow for Suricata 7.x (suricata-7.x branch)
   build_scan_deploy_7x_legacy:
     jobs:
       - build:
+          name: "build-7x-legacy"
+          suricata-version: "7.0.11"
+          alpine-version: "3.19"
           filters:
             branches:
               only: suricata-7.x
       - scan:
+          name: "scan-7x-legacy"
           requires:
-            - build
+            - "build-7x-legacy"
           filters:
             branches:
               only: suricata-7.x
-      - push:
+      - push-to-ecr:
+          name: "push-7x-legacy"
+          image-tag: "v7.0.11-legacy"
+          suricata-version: "7.0.11"
           requires:
-            - scan
+            - "scan-7x-legacy"
           filters:
             branches:
               only: suricata-7.x
