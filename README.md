@@ -1,6 +1,6 @@
 # Suricata Container Project
 
-CIS Albert Suricata Docker container IDS/IPS with **Suricata 7.x as the stable default** and 8.x support for future adoption, featuring automated CI/CD pipeline using CircleCI.
+Suricata Docker container IDS/IPS with **Suricata 7.x as the stable default** and 8.x support for future adoption, featuring automated CI/CD pipeline using CircleCI.
 
 ## Table of Contents
 
