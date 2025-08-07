@@ -7,7 +7,8 @@
 #
 # Examples:
 #   SURICATA_VERSION=7.0.6 make build
-#   ALPINE_VERSION=3.19 SURICATA_VERSION=7.0.6 make build
+#   ORACLE_VERSION=9 SURICATA_VERSION=7.0.6 make build
+#   BUILD_VARIANT=napatech BASE_OS=oracle make build
 #   export SURICATA_VERSION=7.0.6 && make build && make test
 # =============================================================================
 
@@ -16,15 +17,15 @@
 SURICATA_VERSION ?= 7.0.11
 
 # Base image configuration
-# Alpine Linux base image version (for standard builds)
-ALPINE_VERSION ?= 3.19
-# Oracle Linux base image version (for legacy refactored builds)
+# Oracle Linux base image version (primary for legacy refactor)
 ORACLE_VERSION ?= 9
+# Alpine Linux base image version (lightweight alternative)
+ALPINE_VERSION ?= 3.19
 
 # Build variant configuration (legacy refactoring)
 BUILD_VARIANT ?= afpacket
 HYPERSCAN_VERSION ?= 5.4.0
-BASE_OS ?= alpine
+BASE_OS ?= oracle
 
 # Docker image configuration
 IMAGE_NAME ?= suricata

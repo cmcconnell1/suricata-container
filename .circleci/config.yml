@@ -150,11 +150,11 @@ jobs:
             # TEMPORARY: Create compressed version for CircleCI artifacts
             # TODO: Remove this once ECR integration is fully stable and artifact storage is no longer needed
             echo "Creating compressed artifact for CircleCI storage..."
-            gzip -c suricata.tar > suricata-<< parameters.suricata-version >>-alpine<< parameters.alpine-version >>.tar.gz
+            gzip -c suricata.tar > suricata-<< parameters.suricata-version >>-oracle<< parameters.oracle-version >>.tar.gz
 
             # Create metadata file for artifact
             echo "Suricata Version: << parameters.suricata-version >>" > container-metadata.txt
-            echo "Alpine Version: << parameters.alpine-version >>" >> container-metadata.txt
+            echo "Oracle Version: << parameters.oracle-version >>" >> container-metadata.txt
             echo "Build Date: $(date -u +%Y-%m-%dT%H:%M:%SZ)" >> container-metadata.txt
             echo "Git Commit: ${CIRCLE_SHA1}" >> container-metadata.txt
             echo "Git Branch: ${CIRCLE_BRANCH}" >> container-metadata.txt
@@ -168,8 +168,8 @@ jobs:
       # TEMPORARY: Store container image as CircleCI artifact
       # TODO: Remove this step once ECR integration is fully stable
       - store_artifacts:
-          path: suricata-<< parameters.suricata-version >>-alpine<< parameters.alpine-version >>.tar.gz
-          destination: containers/suricata-<< parameters.suricata-version >>-alpine<< parameters.alpine-version >>.tar.gz
+          path: suricata-<< parameters.suricata-version >>-oracle<< parameters.oracle-version >>.tar.gz
+          destination: containers/suricata-<< parameters.suricata-version >>-oracle<< parameters.oracle-version >>.tar.gz
 
       - store_artifacts:
           path: container-metadata.txt
