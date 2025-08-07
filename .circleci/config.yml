@@ -291,7 +291,7 @@ jobs:
             # TEMPORARY: Create deployment manifest for artifacts
             # TODO: Remove this once ECR integration is fully stable and artifact storage is no longer needed
             echo "Creating deployment manifest for artifacts..."
-            cat > deployment-manifest.json << EOF
+            cat > deployment-manifest.json \<< EOF
             {
               "deployment_info": {
                 "timestamp": "$(date -u +%Y-%m-%dT%H:%M:%SZ)",
@@ -472,7 +472,7 @@ jobs:
             fi
 
             # Create comprehensive metadata
-            cat > artifacts/README.md << EOF
+            cat > artifacts/README.md \<< EOF
             # Suricata Container Artifacts
 
             This artifact package contains a complete Suricata container build including:
