@@ -1,53 +1,62 @@
-# Suricata Multi-Version Quick Reference
+# Suricata Dual-Variant Quick Reference
 
 ## Quick Start
 
-### Build Suricata 7.x (Default/Stable)
+### Build Alpine Linux Variant (252MB)
 ```bash
-git checkout main
 make build && make test
 ```
 
-### Build Suricata 8.x (Latest Features)
+### Build Oracle Linux Variant (520MB)
 ```bash
-git checkout suricata-8.x
-make build && make test
+make build-oracle && make test-oracle
 ```
 
-## Docker Tags
+### Build Both Variants
+```bash
+make all
+```
 
-| Version | Tags | Usage |
-|---------|------|-------|
-| **7.x** | `latest`, `7`, `7.0.11` | Stable (default) |
-| **8.x** | `8-latest`, `8`, `8.0.0` | Latest features |
+## Container Variants
+
+| Variant | Size | Base OS | Usage |
+|---------|------|---------|-------|
+| **Alpine** | 252MB | Alpine Linux 3.20 | Modern/Cloud-Native |
+| **Oracle Linux** | 520MB | Oracle Linux 9 | Enterprise/Legacy |
 
 ## Docker Pull/Run
 
 ```bash
-# Suricata 7.x (stable/default)
-docker pull cis-devops/suricata:latest
-docker run -d --cap-add=NET_ADMIN --cap-add=NET_RAW cis-devops/suricata:latest
+# Alpine Linux variant (ultra-lightweight)
+docker pull cis-devops/suricata:7.0.11
+docker run -d --cap-add=NET_ADMIN --cap-add=NET_RAW cis-devops/suricata:7.0.11
 
-# Suricata 8.x (latest features)
-docker pull cis-devops/suricata:8-latest
-docker run -d --cap-add=NET_ADMIN --cap-add=NET_RAW cis-devops/suricata:8-latest
+# Oracle Linux variant (enterprise)
+docker pull cis-devops/suricata:7.0.11-ol9-afpacket
+docker run -d --cap-add=NET_ADMIN --cap-add=NET_RAW cis-devops/suricata:7.0.11-ol9-afpacket
 ```
 
 ## Published Images
 
 Successfully built images are available at:
-- **Latest Stable**: `cis-devops/suricata:latest` (7.x)
-- **Latest Features**: `cis-devops/suricata:8-latest` (8.x)
-- **Specific Versions**: `cis-devops/suricata:7.0.11`, `cis-devops/suricata:8.0.0`
+- **Alpine Variant**: `cis-devops/suricata:7.0.11` (252MB)
+- **Oracle Linux Variant**: `cis-devops/suricata:7.0.11-ol9-afpacket` (520MB)
 - **Commit-based**: `cis-devops/suricata:<commit-hash>`
 
-## Branch Structure
+## Container Architecture
 
 ```
-main branch (Suricata 7.x - DEFAULT)
-├── Default: Suricata 7.0.11, Alpine 3.19, Rust 1.70.0, Python 3.11
-├── Tags: v7.0.11, v7.0.12, v7.0.13...
-└── Docker: latest, 7, 7.0.11...
+Alpine Linux Variant (252MB)
+├── Base: Alpine Linux 3.20, Rust 1.76.0, Python 3.12
+├── Optimization: 75% smaller than industry standards
+├── Use Case: Modern cloud-native deployments
+└── Docker: suricata:7.0.11
+
+Oracle Linux Variant (520MB)
+├── Base: Oracle Linux 9, Rust 1.76.0, Python 3.11
+├── Legacy: All 57 legacy packages included
+├── Use Case: Enterprise and legacy environments
+└── Docker: suricata:7.0.11-ol9-afpacket
 
 suricata-8.x branch (Suricata 8.x - LATEST)
 ├── Default: Suricata 8.0.0, Alpine 3.20, Rust 1.78.0, Python 3.12

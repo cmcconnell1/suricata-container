@@ -1,35 +1,58 @@
 # Usage Guide
 
-## Container Ready!
+## Container Ready
 
-The Suricata 8.0.0 container is successfully built and ready for production use with all modern security features!
+Both Suricata 7.0.11 container variants are successfully built and ready for production use with modern security features!
 
 ## Running the Container
 
-### Production (Linux)
+### Alpine Linux Variant (252MB) - Recommended for Modern Deployments
 
-Basic usage:
+Production usage (Linux):
 ```sh
-docker run -d --name suricata \
+docker run -d --name suricata-alpine \
   --net=host \
   --cap-add=NET_ADMIN \
   --cap-add=NET_RAW \
   -e INTERFACE=eth0 \
   -v suricata-logs:/var/log/suricata \
-  yourusername/suricata
+  suricata:7.0.11
+```
+
+### Oracle Linux Variant (520MB) - Recommended for Enterprise Deployments
+
+Production usage (Linux):
+```sh
+docker run -d --name suricata-enterprise \
+  --net=host \
+  --cap-add=NET_ADMIN \
+  --cap-add=NET_RAW \
+  -e INTERFACE=eth0 \
+  -v suricata-logs:/var/log/suricata \
+  suricata:7.0.11-ol9-afpacket
 ```
 
 ### Development (macOS)
 
 For local testing on macOS, use bridge networking since `--net=host` doesn't work:
 ```sh
-docker run -d --name suricata \
+# Alpine variant
+docker run -d --name suricata-alpine \
   --cap-add=NET_ADMIN \
   --cap-add=NET_RAW \
   -e INTERFACE=eth0 \
   -p 8080:8080 \
   -v suricata-logs:/var/log/suricata \
-  yourusername/suricata
+  suricata:7.0.11
+
+# Oracle Linux variant
+docker run -d --name suricata-enterprise \
+  --cap-add=NET_ADMIN \
+  --cap-add=NET_RAW \
+  -e INTERFACE=eth0 \
+  -p 8080:8080 \
+  -v suricata-logs:/var/log/suricata \
+  suricata:7.0.11-ol9-afpacket
 ```
 
 **Note**: Network monitoring capabilities are limited on macOS due to Docker Desktop's virtualization layer.

@@ -1,0 +1,235 @@
+# =============================================================================
+# SURICATA NAPATECH CONFIGURATION - LEGACY REFACTORED
+# =============================================================================
+# This configuration file is optimized for Napatech hardware acceleration
+# and replicates the settings from legacy albert_build_scripts configurations.
+#
+# Based on legacy Napatech configurations from:
+# - cisappdev/albert_build_scripts Napatech builds
+# - High-performance packet capture requirements
+# - Hardware-specific optimizations
+# =============================================================================
+
+# Napatech capture configuration
+napatech:
+  # Enable Napatech capture mode
+  use-all-streams: yes
+  
+  # Stream configuration for hardware acceleration
+  streams:
+    - stream-id: 0
+    - stream-id: 1
+    - stream-id: 2
+    - stream-id: 3
+
+# Performance optimizations for Napatech hardware
+threading:
+  set-cpu-affinity: yes
+  cpu-affinity:
+    - management-cpu-set:
+        cpu: [ 0 ]
+    - receive-cpu-set:
+        cpu: [ 1, 2, 3, 4 ]
+    - worker-cpu-set:
+        cpu: [ 5, 6, 7, 8, 9, 10, 11, 12 ]
+    - verdict-cpu-set:
+        cpu: [ 13, 14, 15 ]
+
+  detect-thread-ratio: 1.5
+
+# Packet capture settings optimized for Napatech
+af-packet:
+  # Disable AF_PACKET when using Napatech
+  - interface: default
+    use-mmap: no
+
+# High-performance settings for Napatech hardware
+max-pending-packets: 65535
+
+# Memory and buffer optimizations
+runmode: workers
+
+# Logging configuration
+logging:
+  default-log-level: info
+  outputs:
+    - console:
+        enabled: yes
+        type: json
+    - file:
+        enabled: yes
+        level: info
+        filename: /var/log/suricata/suricata.log
+        type: regular
+        format: "[%i] %t - (%f:%l) <%d> (%n) -- %m"
+    - file:
+        enabled: yes
+        level: notice
+        filename: /var/log/suricata/suricata-start.log
+        type: regular
+        format: "%t - %l"
+
+# Rule and signature settings
+default-rule-path: /etc/suricata/rules
+rule-files:
+  - suricata.rules
+  - emerging-threats.rules
+
+# Classification and reference configuration
+classification-file: /etc/suricata/classification.config
+reference-config-file: /etc/suricata/reference.config
+
+# Statistics and performance monitoring
+stats:
+  enabled: yes
+  interval: 30
+  decoder-events: true
+  decoder-events-prefix: "decoder.event"
+
+# Output configuration for high-performance logging
+outputs:
+  - fast:
+      enabled: yes
+      filename: /var/log/suricata/fast.log
+      append: yes
+  - eve-log:
+      enabled: yes
+      filetype: regular
+      filename: /var/log/suricata/eve.json
+      community-id: true
+      community-id-seed: 0
+      types:
+        - alert:
+            payload: yes
+            payload-buffer-size: 4kb
+            payload-printable: yes
+            packet: yes
+            metadata: yes
+            http-body: yes
+            http-body-printable: yes
+            tagged-packets: yes
+        - http:
+            extended: yes
+        - dns:
+            query: yes
+            answer: yes
+        - tls:
+            extended: yes
+        - files:
+            force-magic: no
+        - smtp:
+        - ssh
+        - stats:
+            totals: yes
+            threads: no
+            deltas: no
+        - flow
+
+# Application layer protocol detection
+app-layer:
+  protocols:
+    http:
+      enabled: yes
+      memcap: 128mb
+    tls:
+      enabled: yes
+      detection-ports:
+        dp: 443
+    dns:
+      tcp:
+        enabled: yes
+        detection-ports:
+          dp: 53
+      udp:
+        enabled: yes
+        detection-ports:
+          dp: 53
+    smtp:
+      enabled: yes
+      detection-ports:
+        dp: 25
+    ssh:
+      enabled: yes
+      detection-ports:
+        dp: 22
+
+# Stream engine configuration for high throughput
+stream:
+  memcap: 512mb
+  checksum-validation: yes
+  inline: auto
+  reassembly:
+    memcap: 256mb
+    depth: 1mb
+    toserver-chunk-size: 2560
+    toclient-chunk-size: 2560
+    randomize-chunk-size: yes
+
+# Host table configuration
+host:
+  hash-size: 4096
+  prealloc: 1000
+  memcap: 32mb
+
+# Flow configuration for high-performance environments
+flow:
+  memcap: 256mb
+  hash-size: 65536
+  prealloc: 10000
+  emergency-recovery: 30
+
+# Defragmentation settings
+defrag:
+  memcap: 64mb
+  hash-size: 65536
+  trackers: 65535
+  max-frags: 65535
+  prealloc: yes
+  timeout: 60
+
+# Detection engine configuration
+detect:
+  profile: high
+  custom-values:
+    toclient-groups: 3
+    toserver-groups: 25
+  sgh-mpm-context: auto
+  inspection-recursion-limit: 3000
+  prefilter:
+    default: mpm
+
+# Hyperscan pattern matching (legacy requirement)
+mpm-algo: hs
+spm-algo: hs
+
+# NUMA configuration for multi-socket systems
+numa:
+  enabled: yes
+
+# Napatech-specific hardware optimizations
+hardware-acceleration:
+  enabled: yes
+  
+# Legacy compatibility settings
+legacy:
+  uricontent: enabled
+
+# Packet acquisition settings
+pcap:
+  - interface: default
+    buffer-size: 64mb
+    checksum-checks: auto
+
+# Unix socket configuration for management
+unix-command:
+  enabled: auto
+  filename: /var/run/suricata/suricata-command.socket
+
+# Exception policy for malformed packets
+exception-policy: auto
+
+# Checksum validation
+checksum-validation: yes
+
+# Packet buffer size optimization
+packet-buffer-size: 32768

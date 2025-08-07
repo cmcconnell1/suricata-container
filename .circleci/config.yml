@@ -1,24 +1,46 @@
 # =============================================================================
-# CIRCLECI CONFIGURATION FOR SURICATA CONTAINER
+# CIRCLECI CONFIGURATION FOR SURICATA CONTAINER - ORACLE LINUX FOCUSED
 # =============================================================================
 # This configuration defines a complete CI/CD pipeline for building, testing,
-# scanning, and deploying Suricata container images to AWS ECR.
+# scanning, and deploying Suricata container images using Oracle Linux base.
+# Refactored from legacy albert_build_scripts to modern containerized approach.
 #
 # Pipeline Stages:
-# 1. BUILD - Compile Suricata container from source with multi-stage builds
+# 1. BUILD - Compile Suricata container from source using Oracle Linux 9
 # 2. SCAN - Security vulnerability scanning with Trivy
 # 3. DEPLOY - Push Docker images to AWS ECR with temporary credentials
+# 4. ARTIFACT - Store container images as CircleCI artifacts (TEMPORARY)
+#
+# Oracle Linux Build Features:
+# - Oracle Linux 9 base (refactored from albert_build_scripts)
+# - gcc-toolset-13 for enhanced performance
+# - Legacy compatibility with all 57 packages
+# - AF_PACKET and Napatech build variants supported
+# - RPM package generation capability
 #
 # Multi-Version Support:
-# - main branch: Suricata 7.x (stable, production-ready)
-# - suricata-8.x branch: Suricata 8.x (latest features)
-# - suricata-7.x branch: Suricata 7.x (legacy support)
+# - main branch: Suricata 7.x Oracle Linux (stable, production-ready)
+# - suricata-8.x branch: Suricata 8.x Oracle Linux (latest features)
+# - suricata-7.x branch: Suricata 7.x Oracle Linux (legacy support)
+# - legacy-refactor branch: Current refactoring work
 #
-# AWS ECR Deployment:
+# AWS ECR Deployment (CURRENT):
 # - Images pushed to: 339712848218.dkr.ecr.us-east-1.amazonaws.com/ecoe/pe/engineering/suricata
 # - Uses temporary credentials via IAM role assumption
 # - Multiple tags per image for version management
 # - Automatic vulnerability scanning in ECR
+#
+# Docker Hub Deployment (FUTURE - COMMENTED OUT):
+# - Legacy-compatible authentication using DOCKER_HUB_RW_PASSWORD pattern
+# - Matches albert_build_scripts authentication mechanism
+# - Supports engineering2 registry namespace
+# - Oracle Linux build variants: AF_PACKET (standard), Napatech (hardware acceleration)
+#
+# CircleCI Artifact Storage (TEMPORARY):
+# - Container images stored as compressed tar files in CircleCI artifacts
+# - Provides backup storage and easy download for testing/debugging
+# - TODO: Remove artifact storage once ECR integration is fully stable
+# - Artifacts retained for 30 days by default in CircleCI
 #
 # Security:
 # - Uses IAM role: arn:aws:iam::339712848218:role/DevOps-Suricata-ECR-Push-Role
@@ -26,7 +48,9 @@
 # - Temporary credentials with automatic expiration
 # - Trivy security scanning blocks critical vulnerabilities
 #
-# Required Environment Variables: None (uses IAM role for authentication)
+# Required Environment Variables:
+# - For ECR: None (uses IAM role for authentication)
+# - For Docker Hub (when enabled): DOCKER_HUB_RW_USERNAME, DOCKER_HUB_RW_PASSWORD
 # =============================================================================
 
 version: 2.1
@@ -55,9 +79,15 @@ jobs:
       suricata-version:
         type: string
         default: "7.0.11"
-      alpine-version:
+      oracle-version:
         type: string
-        default: "3.19"
+        default: "9"
+      build-variant:
+        type: string
+        default: "afpacket"
+      hyperscan-version:
+        type: string
+        default: "5.4.0"
     steps:
       - checkout
       - setup_remote_docker:
@@ -68,12 +98,15 @@ jobs:
       - run:
           name: Build Suricata container
           command: |
-            echo "Building Suricata << parameters.suricata-version >> on Alpine << parameters.alpine-version >>"
-            
+            echo "Building Suricata << parameters.suricata-version >> on Oracle Linux << parameters.oracle-version >>"
+            echo "Build variant: << parameters.build-variant >>, Hyperscan: << parameters.hyperscan-version >>"
+
             docker build \
               --build-arg SURICATA_VERSION=<< parameters.suricata-version >> \
-              --build-arg ALPINE_VERSION=<< parameters.alpine-version >> \
-              -f docker/Dockerfile \
+              --build-arg ORACLE_VERSION=<< parameters.oracle-version >> \
+              --build-arg BUILD_VARIANT=<< parameters.build-variant >> \
+              --build-arg HYPERSCAN_VERSION=<< parameters.hyperscan-version >> \
+              -f docker/Dockerfile.oracle-linux \
               -t suricata:latest .
       
       # Run comprehensive functionality tests
@@ -82,10 +115,10 @@ jobs:
           command: |
             echo "Running container functionality tests..."
             
-            # Test 1: Version check - Verify Suricata binary works
+            # Test 1: Version check - Verify Suricata binary works (Oracle Linux path)
             echo "Testing Suricata version..."
             docker run --rm --cap-add=NET_ADMIN --cap-add=NET_RAW --entrypoint="" \
-              suricata:latest sh -c "suricata -V && echo 'Version check passed'"
+              suricata:latest sh -c "/usr/local/bin/suricata -V && echo 'Version check passed'"
 
             # Test 2: Suricata-update tool - Verify rule management works
             echo "Testing suricata-update tool..."
@@ -95,23 +128,52 @@ jobs:
             # Test 3: Configuration validation (non-blocking in CI environment)
             echo "Testing configuration validation..."
             if docker run --rm --cap-add=NET_ADMIN --cap-add=NET_RAW --entrypoint="" \
-              suricata:latest sh -c "suricata -T -c /etc/suricata/suricata.yaml"; then
+              suricata:latest sh -c "/usr/local/bin/suricata -T -c /etc/suricata/suricata.yaml"; then
               echo "Configuration validation passed"
             else
               echo "Configuration validation failed (expected in CI environment without network interfaces)"
               echo "This does not affect core Suricata functionality"
             fi
+
+            # Test 4: Oracle Linux specific - Check build info for legacy features
+            echo "Testing Oracle Linux build features..."
+            docker run --rm --cap-add=NET_ADMIN --cap-add=NET_RAW --entrypoint="" \
+              suricata:latest sh -c "/usr/local/bin/suricata --build-info | grep -E '(SIMD|Stack|Hyperscan)' && echo 'Oracle Linux features verified'"
       
-      # Save image for next job
+      # Save image for next job and artifacts
       - run:
           name: Save Docker image
           command: |
+            # Save image for workspace (used by subsequent jobs)
             docker save suricata:latest -o suricata.tar
-      
+
+            # TEMPORARY: Create compressed version for CircleCI artifacts
+            # TODO: Remove this once ECR integration is fully stable and artifact storage is no longer needed
+            echo "Creating compressed artifact for CircleCI storage..."
+            gzip -c suricata.tar > suricata-<< parameters.suricata-version >>-alpine<< parameters.alpine-version >>.tar.gz
+
+            # Create metadata file for artifact
+            echo "Suricata Version: << parameters.suricata-version >>" > container-metadata.txt
+            echo "Alpine Version: << parameters.alpine-version >>" >> container-metadata.txt
+            echo "Build Date: $(date -u +%Y-%m-%dT%H:%M:%SZ)" >> container-metadata.txt
+            echo "Git Commit: ${CIRCLE_SHA1}" >> container-metadata.txt
+            echo "Git Branch: ${CIRCLE_BRANCH}" >> container-metadata.txt
+            echo "CircleCI Build: ${CIRCLE_BUILD_NUM}" >> container-metadata.txt
+
       - persist_to_workspace:
           root: .
           paths:
             - suricata.tar
+
+      # TEMPORARY: Store container image as CircleCI artifact
+      # TODO: Remove this step once ECR integration is fully stable
+      - store_artifacts:
+          path: suricata-<< parameters.suricata-version >>-alpine<< parameters.alpine-version >>.tar.gz
+          destination: containers/suricata-<< parameters.suricata-version >>-alpine<< parameters.alpine-version >>.tar.gz
+
+      - store_artifacts:
+          path: container-metadata.txt
+          destination: containers/container-metadata.txt
 
   scan:
     executor: suricata-builder
@@ -139,12 +201,29 @@ jobs:
       - run:
           name: Scan image with Trivy
           command: |
+            # Run security scan
             trivy image --security-checks vuln,config --exit-code 1 --severity CRITICAL suricata:latest
+
+            # TEMPORARY: Generate detailed scan report for artifacts
+            # TODO: Remove this once ECR integration is fully stable and artifact storage is no longer needed
+            echo "Generating detailed security scan report for artifacts..."
+            trivy image --format json --output trivy-scan-report.json suricata:latest || true
+            trivy image --format table --output trivy-scan-report.txt suricata:latest || true
 
       - persist_to_workspace:
           root: .
           paths:
             - suricata.tar
+
+      # TEMPORARY: Store security scan reports as CircleCI artifacts
+      # TODO: Remove this step once ECR integration is fully stable
+      - store_artifacts:
+          path: trivy-scan-report.json
+          destination: security/trivy-scan-report.json
+
+      - store_artifacts:
+          path: trivy-scan-report.txt
+          destination: security/trivy-scan-report.txt
 
   push-to-ecr:
     executor: suricata-builder
@@ -209,16 +288,253 @@ jobs:
             echo "- ${ECR_REGISTRY}/${REPO_NAME}:${COMMIT_TAG}"
             echo "- ${ECR_REGISTRY}/${REPO_NAME}:${BRANCH_TAG}"
 
+            # TEMPORARY: Create deployment manifest for artifacts
+            # TODO: Remove this once ECR integration is fully stable and artifact storage is no longer needed
+            echo "Creating deployment manifest for artifacts..."
+            cat > deployment-manifest.json << EOF
+            {
+              "deployment_info": {
+                "timestamp": "$(date -u +%Y-%m-%dT%H:%M:%SZ)",
+                "suricata_version": "<< parameters.suricata-version >>",
+                "image_tag": "<< parameters.image-tag >>",
+                "git_commit": "${CIRCLE_SHA1}",
+                "git_branch": "${CIRCLE_BRANCH}",
+                "circleci_build": "${CIRCLE_BUILD_NUM}",
+                "ecr_registry": "${ECR_REGISTRY}",
+                "repository": "${REPO_NAME}"
+              },
+              "pushed_images": [
+                "${ECR_REGISTRY}/${REPO_NAME}:${PRIMARY_TAG}",
+                "${ECR_REGISTRY}/${REPO_NAME}:${COMMIT_TAG}",
+                "${ECR_REGISTRY}/${REPO_NAME}:${BRANCH_TAG}"
+              ]
+            }
+            EOF
+
+      # TEMPORARY: Store deployment information as CircleCI artifacts
+      # TODO: Remove this step once ECR integration is fully stable
+      - store_artifacts:
+          path: deployment-manifest.json
+          destination: deployment/deployment-manifest.json
+
+  # =============================================================================
+  # DOCKER HUB PUSH JOB (COMMENTED OUT - FOR FUTURE USE)
+  # =============================================================================
+  # This job provides Docker Hub push functionality using the legacy authentication
+  # pattern from albert_build_scripts. Uncomment and configure when ready to use.
+  #
+  # Required Environment Variables (set in CircleCI project settings):
+  # - DOCKER_HUB_RW_USERNAME: Docker Hub username (e.g., "cisdwallmeyer")
+  # - DOCKER_HUB_RW_PASSWORD: Docker Hub password/token
+  #
+  # Legacy compatibility: Matches authentication pattern from
+  # cisappdev/albert_build_scripts/ansible/roles/build_image_ol9_suricata_napatech_container
+  # =============================================================================
+
+  # push-to-docker-hub:
+  #   executor: suricata-builder
+  #   parameters:
+  #     image-tag:
+  #       type: string
+  #     suricata-version:
+  #       type: string
+  #     build-variant:
+  #       type: string
+  #       default: "alpine"
+  #   steps:
+  #     - checkout
+  #     - attach_workspace:
+  #         at: .
+  #     - setup_remote_docker:
+  #         docker_layer_caching: true
+  #
+  #     # Load image from workspace
+  #     - run:
+  #         name: Load image
+  #         command: docker load -i suricata.tar
+  #
+  #     # Create Docker Hub password file (legacy pattern)
+  #     - run:
+  #         name: Create Docker Hub password file
+  #         command: |
+  #           echo "Creating Docker Hub password file using legacy pattern..."
+  #           echo "${DOCKER_HUB_RW_PASSWORD}" > .docker_hub_rw_password
+  #           chmod 600 .docker_hub_rw_password
+  #
+  #     # Login to Docker Hub using legacy authentication pattern
+  #     - run:
+  #         name: Login to Docker Hub
+  #         command: |
+  #           echo "Logging into Docker Hub registry using legacy authentication pattern..."
+  #           cat .docker_hub_rw_password | docker login --username "${DOCKER_HUB_RW_USERNAME}" --password-stdin
+  #
+  #     # Tag and push images to Docker Hub
+  #     - run:
+  #         name: Tag and push images to Docker Hub
+  #         command: |
+  #           DOCKER_REGISTRY="engineering2"
+  #
+  #           # Determine image naming based on build variant
+  #           if [ "<< parameters.build-variant >>" = "napatech" ]; then
+  #             IMAGE_NAME="suricata-nt"
+  #             IMAGE_SUFFIX="9-oracle-linux"
+  #           elif [ "<< parameters.build-variant >>" = "oracle" ]; then
+  #             IMAGE_NAME="suricata"
+  #             IMAGE_SUFFIX="9-oracle-linux"
+  #           else
+  #             IMAGE_NAME="suricata"
+  #             IMAGE_SUFFIX="alpine-linux"
+  #           fi
+  #
+  #           # Create multiple tags for better image management
+  #           PRIMARY_TAG="<< parameters.image-tag >>"
+  #           VERSION_TAG="<< parameters.suricata-version >>"
+  #           LATEST_TAG="latest"
+  #
+  #           echo "Tagging and pushing images:"
+  #           echo "- Registry: ${DOCKER_REGISTRY}"
+  #           echo "- Image: ${IMAGE_NAME}:${IMAGE_SUFFIX}"
+  #           echo "- Primary tag: ${PRIMARY_TAG}"
+  #           echo "- Version tag: ${VERSION_TAG}"
+  #
+  #           # Tag images (legacy naming convention)
+  #           docker tag suricata:latest ${DOCKER_REGISTRY}/${IMAGE_NAME}:${IMAGE_SUFFIX}
+  #           docker tag suricata:latest ${DOCKER_REGISTRY}/${IMAGE_NAME}:${VERSION_TAG}
+  #           docker tag suricata:latest ${DOCKER_REGISTRY}/${IMAGE_NAME}:${PRIMARY_TAG}
+  #
+  #           # Push all tags
+  #           docker push ${DOCKER_REGISTRY}/${IMAGE_NAME}:${IMAGE_SUFFIX}
+  #           docker push ${DOCKER_REGISTRY}/${IMAGE_NAME}:${VERSION_TAG}
+  #           docker push ${DOCKER_REGISTRY}/${IMAGE_NAME}:${PRIMARY_TAG}
+  #
+  #           echo "Successfully pushed images:"
+  #           echo "- ${DOCKER_REGISTRY}/${IMAGE_NAME}:${IMAGE_SUFFIX}"
+  #           echo "- ${DOCKER_REGISTRY}/${IMAGE_NAME}:${VERSION_TAG}"
+  #           echo "- ${DOCKER_REGISTRY}/${IMAGE_NAME}:${PRIMARY_TAG}"
+  #
+  #     # Cleanup password file
+  #     - run:
+  #         name: Cleanup password file
+  #         command: |
+  #           rm -f .docker_hub_rw_password
+  #         when: always
+
+  # TEMPORARY: Comprehensive artifact creation job
+  # TODO: Remove this job once ECR integration is fully stable and artifact storage is no longer needed
+  create-artifacts:
+    executor: suricata-builder
+    parameters:
+      suricata-version:
+        type: string
+      oracle-version:
+        type: string
+      build-variant:
+        type: string
+      image-tag:
+        type: string
+    steps:
+      - checkout
+      - attach_workspace:
+          at: .
+      - setup_remote_docker:
+          docker_layer_caching: true
+
+      # Load image from workspace
+      - run:
+          name: Load image
+          command: docker load -i suricata.tar
+
+      # Create comprehensive artifact package
+      - run:
+          name: Create comprehensive artifact package
+          command: |
+            echo "Creating comprehensive artifact package..."
+
+            # Create artifacts directory structure
+            mkdir -p artifacts/{containers,security,deployment,documentation}
+
+            # Copy container image (already compressed from build job)
+            if [ -f "suricata-<< parameters.suricata-version >>-ol<< parameters.oracle-version >>-<< parameters.build-variant >>.tar.gz" ]; then
+              cp suricata-<< parameters.suricata-version >>-ol<< parameters.oracle-version >>-<< parameters.build-variant >>.tar.gz artifacts/containers/
+            fi
+
+            # Copy security reports
+            if [ -f "trivy-scan-report.json" ]; then
+              cp trivy-scan-report.json artifacts/security/
+            fi
+            if [ -f "trivy-scan-report.txt" ]; then
+              cp trivy-scan-report.txt artifacts/security/
+            fi
+
+            # Copy deployment manifest
+            if [ -f "deployment-manifest.json" ]; then
+              cp deployment-manifest.json artifacts/deployment/
+            fi
+
+            # Create comprehensive metadata
+            cat > artifacts/README.md << EOF
+            # Suricata Container Artifacts
+
+            This artifact package contains a complete Suricata container build including:
+
+            ## Container Image
+            - **File**: containers/suricata-<< parameters.suricata-version >>-ol<< parameters.oracle-version >>-<< parameters.build-variant >>.tar.gz
+            - **Suricata Version**: << parameters.suricata-version >>
+            - **Oracle Linux Version**: << parameters.oracle-version >>
+            - **Build Variant**: << parameters.build-variant >>
+            - **Image Tag**: << parameters.image-tag >>
+
+            ## Security Reports
+            - **JSON Report**: security/trivy-scan-report.json
+            - **Text Report**: security/trivy-scan-report.txt
+
+            ## Deployment Information
+            - **Manifest**: deployment/deployment-manifest.json
+
+            ## Build Information
+            - **Git Commit**: ${CIRCLE_SHA1}
+            - **Git Branch**: ${CIRCLE_BRANCH}
+            - **Build Number**: ${CIRCLE_BUILD_NUM}
+            - **Build Date**: $(date -u +%Y-%m-%dT%H:%M:%SZ)
+
+            ## Usage
+            To load the container image:
+            \`\`\`bash
+            gunzip -c containers/suricata-<< parameters.suricata-version >>-ol<< parameters.oracle-version >>-<< parameters.build-variant >>.tar.gz | docker load
+            \`\`\`
+
+            ## Note
+            This artifact storage is temporary and will be removed once ECR integration is fully stable.
+            EOF
+
+            # Create artifact package
+            tar -czf suricata-complete-artifacts-<< parameters.suricata-version >>.tar.gz artifacts/
+
+            echo "Artifact package created: suricata-complete-artifacts-<< parameters.suricata-version >>.tar.gz"
+            ls -la suricata-complete-artifacts-<< parameters.suricata-version >>.tar.gz
+
+      # Store comprehensive artifact package
+      - store_artifacts:
+          path: suricata-complete-artifacts-<< parameters.suricata-version >>.tar.gz
+          destination: complete/suricata-complete-artifacts-<< parameters.suricata-version >>.tar.gz
+
+      # Store individual components for easy access
+      - store_artifacts:
+          path: artifacts/
+          destination: components/
+
 workflows:
   version: 2
 
-  # Main workflow for Suricata 7.x (main branch - default/stable)
+  # Main workflow for Suricata 7.x Oracle Linux (main branch - default/stable)
   build_scan_deploy_7x:
     jobs:
       - build:
           name: "build-7x-main"
           suricata-version: "7.0.11"
-          alpine-version: "3.19"
+          oracle-version: "9"
+          build-variant: "afpacket"
+          hyperscan-version: "5.4.0"
           filters:
             branches:
               only: main
@@ -238,14 +554,28 @@ workflows:
           filters:
             branches:
               only: main
+      # TEMPORARY: Create comprehensive artifacts (remove once ECR integration is fully stable)
+      - create-artifacts:
+          name: "artifacts-7x-main"
+          suricata-version: "7.0.11"
+          oracle-version: "9"
+          build-variant: "afpacket"
+          image-tag: "v7.0.11-main-stable"
+          requires:
+            - "scan-7x-main"
+          filters:
+            branches:
+              only: main
 
-  # Workflow for Suricata 8.x (suricata-8.x branch - latest features)
+  # Workflow for Suricata 8.x Oracle Linux (suricata-8.x branch - latest features)
   build_scan_deploy_8x:
     jobs:
       - build:
           name: "build-8x"
           suricata-version: "8.0.0"
-          alpine-version: "3.20"
+          oracle-version: "9"
+          build-variant: "afpacket"
+          hyperscan-version: "5.4.0"
           filters:
             branches:
               only: suricata-8.x
@@ -265,14 +595,28 @@ workflows:
           filters:
             branches:
               only: suricata-8.x
+      # TEMPORARY: Create comprehensive artifacts (remove once ECR integration is fully stable)
+      - create-artifacts:
+          name: "artifacts-8x"
+          suricata-version: "8.0.0"
+          oracle-version: "9"
+          build-variant: "afpacket"
+          image-tag: "v8.0.0-latest"
+          requires:
+            - "scan-8x"
+          filters:
+            branches:
+              only: suricata-8.x
 
-  # Legacy workflow for Suricata 7.x (suricata-7.x branch)
+  # Legacy workflow for Suricata 7.x Oracle Linux (suricata-7.x branch)
   build_scan_deploy_7x_legacy:
     jobs:
       - build:
           name: "build-7x-legacy"
           suricata-version: "7.0.11"
-          alpine-version: "3.19"
+          oracle-version: "9"
+          build-variant: "afpacket"
+          hyperscan-version: "5.4.0"
           filters:
             branches:
               only: suricata-7.x
@@ -292,3 +636,181 @@ workflows:
           filters:
             branches:
               only: suricata-7.x
+      # TEMPORARY: Create comprehensive artifacts (remove once ECR integration is fully stable)
+      - create-artifacts:
+          name: "artifacts-7x-legacy"
+          suricata-version: "7.0.11"
+          oracle-version: "9"
+          build-variant: "afpacket"
+          image-tag: "v7.0.11-legacy"
+          requires:
+            - "scan-7x-legacy"
+          filters:
+            branches:
+              only: suricata-7.x
+
+  # TEMPORARY: Legacy refactor workflow (legacy-refactor branch)
+  # This workflow supports the current legacy refactoring work using Oracle Linux
+  build_scan_deploy_legacy_refactor:
+    jobs:
+      - build:
+          name: "build-legacy-refactor"
+          suricata-version: "7.0.11"
+          oracle-version: "9"
+          build-variant: "afpacket"
+          hyperscan-version: "5.4.0"
+          filters:
+            branches:
+              only: legacy-refactor
+      - scan:
+          name: "scan-legacy-refactor"
+          requires:
+            - "build-legacy-refactor"
+          filters:
+            branches:
+              only: legacy-refactor
+      - push-to-ecr:
+          name: "push-legacy-refactor"
+          image-tag: "v7.0.11-legacy-refactor"
+          suricata-version: "7.0.11"
+          requires:
+            - "scan-legacy-refactor"
+          filters:
+            branches:
+              only: legacy-refactor
+      # TEMPORARY: Create comprehensive artifacts (remove once ECR integration is fully stable)
+      - create-artifacts:
+          name: "artifacts-legacy-refactor"
+          suricata-version: "7.0.11"
+          oracle-version: "9"
+          build-variant: "afpacket"
+          image-tag: "v7.0.11-legacy-refactor"
+          requires:
+            - "scan-legacy-refactor"
+          filters:
+            branches:
+              only: legacy-refactor
+
+# =============================================================================
+# DOCKER HUB WORKFLOWS (COMMENTED OUT - FOR FUTURE USE)
+# =============================================================================
+# These workflows demonstrate how to integrate Docker Hub pushing using the
+# legacy authentication pattern. Uncomment and modify as needed.
+#
+# Prerequisites:
+# 1. Set DOCKER_HUB_RW_USERNAME in CircleCI environment variables
+# 2. Set DOCKER_HUB_RW_PASSWORD in CircleCI environment variables
+# 3. Uncomment the push-to-docker-hub job above
+# 4. Uncomment and modify the desired workflow below
+# =============================================================================
+
+# Example 1: Docker Hub push for main branch (Oracle Linux variant)
+# build_scan_push_dockerhub_main:
+#   jobs:
+#     - build:
+#         name: "build-main-dockerhub"
+#         suricata-version: "7.0.11"
+#         oracle-version: "9"
+#         build-variant: "afpacket"
+#         hyperscan-version: "5.4.0"
+#         filters:
+#           branches:
+#             only: main
+#     - scan:
+#         name: "scan-main-dockerhub"
+#         requires:
+#           - "build-main-dockerhub"
+#         filters:
+#           branches:
+#             only: main
+#     - push-to-docker-hub:
+#         name: "push-main-dockerhub"
+#         image-tag: "v7.0.11-main"
+#         suricata-version: "7.0.11"
+#         build-variant: "oracle"
+#         requires:
+#           - "scan-main-dockerhub"
+#         filters:
+#           branches:
+#             only: main
+
+# Example 2: Docker Hub push for Oracle Linux variants (AF_PACKET and Napatech)
+# build_scan_push_dockerhub_oracle:
+#   jobs:
+#     - build:
+#         name: "build-oracle-dockerhub"
+#         suricata-version: "7.0.11"
+#         oracle-version: "9"
+#         build-variant: "afpacket"
+#         hyperscan-version: "5.4.0"
+#         filters:
+#           branches:
+#             only: legacy-refactor
+#     - scan:
+#         name: "scan-oracle-dockerhub"
+#         requires:
+#           - "build-oracle-dockerhub"
+#         filters:
+#           branches:
+#             only: legacy-refactor
+#     - push-to-docker-hub:
+#         name: "push-oracle-afpacket-dockerhub"
+#         image-tag: "v7.0.11-ol9-afpacket"
+#         suricata-version: "7.0.11"
+#         build-variant: "oracle"
+#         requires:
+#           - "scan-oracle-dockerhub"
+#         filters:
+#           branches:
+#             only: legacy-refactor
+#     - push-to-docker-hub:
+#         name: "push-oracle-napatech-dockerhub"
+#         image-tag: "v7.0.11-ol9-napatech"
+#         suricata-version: "7.0.11"
+#         build-variant: "napatech"
+#         requires:
+#           - "scan-oracle-dockerhub"
+#         filters:
+#           branches:
+#             only: legacy-refactor
+
+# Example 3: Combined ECR and Docker Hub push workflow (Oracle Linux)
+# build_scan_push_both_registries:
+#   jobs:
+#     - build:
+#         name: "build-dual-registry"
+#         suricata-version: "7.0.11"
+#         oracle-version: "9"
+#         build-variant: "afpacket"
+#         hyperscan-version: "5.4.0"
+#         filters:
+#           branches:
+#             only: main
+#     - scan:
+#         name: "scan-dual-registry"
+#         requires:
+#           - "build-dual-registry"
+#         filters:
+#           branches:
+#             only: main
+#     # Push to ECR (current method)
+#     - push-to-ecr:
+#         name: "push-ecr-dual"
+#         image-tag: "v7.0.11-main"
+#         suricata-version: "7.0.11"
+#         requires:
+#           - "scan-dual-registry"
+#         filters:
+#           branches:
+#             only: main
+#     # Push to Docker Hub (future method)
+#     - push-to-docker-hub:
+#         name: "push-dockerhub-dual"
+#         image-tag: "v7.0.11-main"
+#         suricata-version: "7.0.11"
+#         build-variant: "oracle"
+#         requires:
+#           - "scan-dual-registry"
+#         filters:
+#           branches:
+#             only: main

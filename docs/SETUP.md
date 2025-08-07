@@ -1,8 +1,24 @@
 # Setup Guide
 
-## Build Status: SUCCESS!
+## Build Status: SUCCESS
 
-**The container has been successfully built and tested!** Suricata 8.0.0 is running perfectly with all 2025 features including JA3/JA4 fingerprinting, HTTP/2 support, and enhanced TLS analysis.
+**Both container variants have been successfully built and tested!** Suricata 7.0.11 is running perfectly on both Alpine Linux (252MB) and Oracle Linux (520MB) variants with modern features including JA3/JA4 fingerprinting, HTTP/2 support, and enhanced TLS analysis.
+
+## Refactored Build Process
+
+The Oracle Linux variant represents a complete refactoring of the legacy albert_build_scripts build process into a modern containerized approach:
+
+### Legacy Integration
+- **Source**: Refactored from `cisappdev/albert_build_scripts` Ansible playbooks
+- **Compatibility**: Maintains all 57 legacy package dependencies
+- **Build Tools**: Uses gcc-toolset-13 for enhanced performance
+- **RPM Generation**: Creates distribution-ready RPM packages
+
+### Napatech Driver Support
+- **Hardware Acceleration**: Optional Napatech 3GD driver integration (v12.4.3.1)
+- **Download Source**: `https://albert-updates.cisecurity.org/napatech/`
+- **Build Variants**: AF_PACKET (standard) and Napatech (hardware acceleration)
+- **Fallback Mechanism**: Graceful fallback if Napatech packages unavailable
 
 ## Prerequisites
 
@@ -33,29 +49,49 @@ This script will:
 The Makefile automatically detects macOS and sets the correct platform flags:
 
 1. Clone the repository
-2. Build the image:
+2. Build Alpine variant (252MB):
    ```sh
-   make build
+   make build && make test
    ```
-3. Test the image:
+3. Build Oracle Linux variant (520MB):
    ```sh
-   make test
+   make build-oracle && make test-oracle
+   ```
+4. Build Oracle Linux with Napatech drivers:
+   ```sh
+   make build-oracle BUILD_VARIANT=napatech && make test-oracle
+   ```
+5. Build both variants:
+   ```sh
+   make all
    ```
 
 ### Linux
 
 1. Clone the repository
-2. Build the image:
+2. Build Alpine variant (252MB):
    ```sh
    make build
    # or manually:
-   docker build -t suricata -f docker/Dockerfile .
+   docker build -t suricata:7.0.11 -f docker/Dockerfile .
    ```
-3. Test the image:
+3. Build Oracle Linux variant (520MB):
    ```sh
-   make test
+   make build-oracle
    # or manually:
-   docker run --rm --cap-add=NET_ADMIN --cap-add=NET_RAW suricata --version
+   docker build -t suricata:7.0.11-ol9-afpacket -f docker/Dockerfile.oracle-linux .
+   ```
+4. Build Oracle Linux with Napatech drivers:
+   ```sh
+   make build-oracle BUILD_VARIANT=napatech
+   # or manually:
+   docker build --build-arg BUILD_VARIANT=napatech \
+     -t suricata:7.0.11-ol9-napatech -f docker/Dockerfile.oracle-linux .
+   ```
+5. Test the variants:
+   ```sh
+   make test        # Alpine variant
+   make test-oracle # Oracle Linux variant
    ```
 
 ## CI/CD Setup

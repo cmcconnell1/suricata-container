@@ -15,14 +15,27 @@
 # Supported versions: 8.0.x (current), 7.0.x (stable), 6.0.x (legacy)
 SURICATA_VERSION ?= 7.0.11
 
-# Alpine Linux base image version
-# Note: Suricata 8.x requires Alpine 3.20+ for Rust 1.78.0 support
+# Base image configuration
+# Alpine Linux base image version (for standard builds)
 ALPINE_VERSION ?= 3.19
+# Oracle Linux base image version (for legacy refactored builds)
+ORACLE_VERSION ?= 9
+
+# Build variant configuration (legacy refactoring)
+BUILD_VARIANT ?= afpacket
+HYPERSCAN_VERSION ?= 5.4.0
+BASE_OS ?= alpine
 
 # Docker image configuration
 IMAGE_NAME ?= suricata
 TAG ?= $(SURICATA_VERSION)
 DOCKER_USERNAME ?= yourusername
+
+# Docker registry configuration (for future use)
+# Uncomment and configure these variables when ready to push to registry
+# DOCKER_REGISTRY ?= engineering2
+# DOCKER_HUB_RW_USERNAME ?= cisdwallmeyer
+# DOCKER_HUB_RW_PASSWORD_FILE ?= .docker_hub_rw_password
 
 # Default target
 .DEFAULT_GOAL := help
@@ -39,7 +52,7 @@ else
     $(info Building on native Linux platform)
 endif
 
-build: ## Build the Suricata Docker image
+build: ## Build the Suricata Docker image (Alpine-based)
 	@echo "Building Suricata $(SURICATA_VERSION) container with Alpine $(ALPINE_VERSION)..."
 	@echo "Checking Docker Hub authentication..."
 	@docker pull alpine:$(ALPINE_VERSION) >/dev/null 2>&1 || (echo "Error: Docker Hub authentication required. Run 'docker login' first." && exit 1)
@@ -49,8 +62,22 @@ build: ## Build the Suricata Docker image
 		-t $(IMAGE_NAME):$(TAG) \
 		-f docker/Dockerfile .
 
-test: ## Test the built Docker image
+build-oracle: ## Build the Suricata Docker image (Oracle Linux-based, legacy refactored)
+	@echo "Building Suricata $(SURICATA_VERSION) container with Oracle Linux $(ORACLE_VERSION)..."
+	@echo "Build variant: $(BUILD_VARIANT), Hyperscan: $(HYPERSCAN_VERSION)"
+	docker build $(PLATFORM_FLAG) \
+		--build-arg SURICATA_VERSION=$(SURICATA_VERSION) \
+		--build-arg ORACLE_VERSION=$(ORACLE_VERSION) \
+		--build-arg BUILD_VARIANT=$(BUILD_VARIANT) \
+		--build-arg HYPERSCAN_VERSION=$(HYPERSCAN_VERSION) \
+		-t $(IMAGE_NAME):$(TAG)-ol$(ORACLE_VERSION)-$(BUILD_VARIANT) \
+		-f docker/Dockerfile.oracle-linux .
+
+test: ## Test the built Docker image (Alpine-based)
 	docker run $(PLATFORM_FLAG) --rm --cap-add=NET_ADMIN --cap-add=NET_RAW --entrypoint="" $(IMAGE_NAME):$(TAG) suricata -V
+
+test-oracle: ## Test the built Oracle Linux Docker image
+	docker run $(PLATFORM_FLAG) --rm --cap-add=NET_ADMIN --cap-add=NET_RAW --entrypoint="" $(IMAGE_NAME):$(TAG)-ol$(ORACLE_VERSION)-$(BUILD_VARIANT) /usr/local/bin/suricata -V
 
 push: ## Push the image to Docker Hub
 	docker tag $(IMAGE_NAME):$(TAG) $(DOCKER_USERNAME)/$(IMAGE_NAME):$(TAG)
@@ -65,8 +92,10 @@ push-latest: ## Push the image to Docker Hub with both version tag and latest
 clean: ## Remove local Docker images
 	docker rmi $(IMAGE_NAME):$(TAG) || true
 	docker rmi $(DOCKER_USERNAME)/$(IMAGE_NAME):$(TAG) || true
+	docker rmi $(IMAGE_NAME):$(TAG)-ol$(ORACLE_VERSION)-$(BUILD_VARIANT) || true
 
-all: build test ## Build and test the image
+all: build test ## Build and test the Alpine image
+all-oracle: build-oracle test-oracle ## Build and test the Oracle Linux image
 
 login: ## Log in to Docker Hub
 	docker login
@@ -83,13 +112,18 @@ help: ## Show this help message
 	@awk 'BEGIN {FS = ":.*?## "} /^[a-zA-Z_-]+:.*?## / {printf "  %-15s %s\n", $$1, $$2}' $(MAKEFILE_LIST)
 	@echo ""
 	@echo "Version Control Variables:"
-	@echo "  SURICATA_VERSION Suricata version (current: $(SURICATA_VERSION))"
-	@echo "  ALPINE_VERSION   Alpine Linux version (current: $(ALPINE_VERSION))"
-	@echo "  IMAGE_NAME       Docker image name (current: $(IMAGE_NAME))"
-	@echo "  TAG              Docker image tag (current: $(TAG))"
-	@echo "  DOCKER_USERNAME  Docker Hub username (current: $(DOCKER_USERNAME))"
+	@echo "  SURICATA_VERSION  Suricata version (current: $(SURICATA_VERSION))"
+	@echo "  ALPINE_VERSION    Alpine Linux version (current: $(ALPINE_VERSION))"
+	@echo "  ORACLE_VERSION    Oracle Linux version (current: $(ORACLE_VERSION))"
+	@echo "  BUILD_VARIANT     Build variant: afpacket|napatech (current: $(BUILD_VARIANT))"
+	@echo "  HYPERSCAN_VERSION Hyperscan version (current: $(HYPERSCAN_VERSION))"
+	@echo "  IMAGE_NAME        Docker image name (current: $(IMAGE_NAME))"
+	@echo "  TAG               Docker image tag (current: $(TAG))"
+	@echo "  DOCKER_USERNAME   Docker Hub username (current: $(DOCKER_USERNAME))"
 	@echo ""
-	@echo "Version Control Examples:"
-	@echo "  SURICATA_VERSION=7.0.6 make build"
-	@echo "  ALPINE_VERSION=3.19 SURICATA_VERSION=7.0.6 make build"
-	@echo "  export SURICATA_VERSION=7.0.6 && make build && make test"
+	@echo "Build Examples:"
+	@echo "  make build                                    # Alpine-based build"
+	@echo "  make build-oracle                             # Oracle Linux build (afpacket)"
+	@echo "  BUILD_VARIANT=napatech make build-oracle     # Oracle Linux build (napatech)"
+	@echo "  SURICATA_VERSION=7.0.6 make build-oracle     # Custom version"
+	@echo "  make all-oracle                               # Build and test Oracle Linux"

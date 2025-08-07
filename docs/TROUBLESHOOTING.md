@@ -1,8 +1,8 @@
 # Troubleshooting Guide
 
-## Build Success!
+## Build Success
 
-The container has been successfully built and tested! Most common issues have been resolved in this version.
+Both container variants have been successfully built and tested! Most common issues have been resolved in this version.
 
 ## Common Issues
 
@@ -11,11 +11,14 @@ The container has been successfully built and tested! Most common issues have be
 If your container shows as "unhealthy":
 
 ```bash
-# Check health status
-docker inspect --format='{{.State.Health.Status}}' suricata
+# Check health status - Alpine variant
+docker inspect --format='{{.State.Health.Status}}' suricata-alpine
+
+# Check health status - Oracle Linux variant
+docker inspect --format='{{.State.Health.Status}}' suricata-enterprise
 
 # View detailed health check logs
-docker inspect --format='{{json .State.Health}}' suricata
+docker inspect --format='{{json .State.Health}}' suricata-alpine
 ```
 
 **Common health check issues and solutions:**
@@ -23,7 +26,7 @@ docker inspect --format='{{json .State.Health}}' suricata
 #### **"Suricata control socket not responding" (older images)**
 - **Cause**: Missing suricatasc Python module or control socket not configured
 - **Error**: `ModuleNotFoundError: No module named 'suricata.sc'`
-- **Solution**: Use newer images (post-July 2025) with fixed health checks
+- **Solution**: Use current images (January 2025) with fixed health checks
 - **Workaround**: Manually update healthcheck.sh in running container
 
 #### **"Suricata logs not being updated" (older images)**
@@ -45,8 +48,11 @@ The updated health check validates:
 
 **Manual health check test:**
 ```bash
-# Test the health check manually
-docker exec suricata /usr/local/bin/healthcheck.sh
+# Test the health check manually - Alpine variant
+docker exec suricata-alpine /usr/local/bin/healthcheck.sh
+
+# Test the health check manually - Oracle Linux variant
+docker exec suricata-enterprise /usr/local/bin/healthcheck.sh
 
 # Expected output for healthy container:
 # HEALTH CHECK PASSED: Suricata is running and healthy

@@ -1,0 +1,20 @@
+[ol9_developer_EPEL]
+name=Oracle Linux $releasever EPEL Packages for Development ($basearch)
+baseurl=https://yum$ociregion.$ocidomain/repo/OracleLinux/OL9/developer/EPEL/$basearch/
+gpgkey=file:///etc/pki/rpm-gpg/RPM-GPG-KEY-oracle
+gpgcheck=1
+enabled=1
+
+[ol9_developer]
+name=Oracle Linux $releasever Development Packages ($basearch)
+baseurl=https://yum.oracle.com/repo/OracleLinux/OL9/developer/$basearch/
+gpgkey=file:///etc/pki/rpm-gpg/RPM-GPG-KEY-oracle
+gpgcheck=1
+enabled=1
+
+[ol9_code_ready_builder]
+name=Oracle Linux $releasever CodeReady Builder
+baseurl=https://yum$ociregion.$ocidomain/repo/OracleLinux/OL9/codeready/builder/$basearch/
+gpgkey=file:///etc/pki/rpm-gpg/RPM-GPG-KEY-oracle
+gpgcheck=1
+enabled=1
