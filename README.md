@@ -319,7 +319,7 @@ This project represents a modern containerized approach that differs significant
 - **Primary Repository**: Bitbucket (https://bitbucket.org/cis-devops/suricata-container)
 - **CI/CD**: CircleCI with Bitbucket integration
 - **Artifact Retention**: Container images retained for 30 days
-- **Multi-Branch Support**: Automated builds for main, suricata-8.x, and suricata-7.x branches
+- **Multi-Branch Support**: Automated builds for main (Suricata 7.x stable) and suricata-8.x branches
 
 ### Pipeline Workflow
 
@@ -349,7 +349,8 @@ The CircleCI pipeline automatically:
 
 ### Branch-Specific Builds
 
-- **legacy-refactor branch** → Builds both Suricata 7.0.11 variants (Alpine 252MB, Oracle Linux 520MB)
+- **main branch** → Suricata 7.0.11 Oracle Linux stable (520MB) - DEFAULT BRANCH
+- **suricata-8.x branch** → Future Suricata 8.x development
 
 ## Getting Built Images
 
@@ -404,20 +405,15 @@ docker run -d --name suricata \
 
 Each build creates multiple tags for flexible deployment:
 
-**Main Branch (Stable - Recommended)**
+**Main Branch (Suricata 7.x Stable - DEFAULT & RECOMMENDED)**
 - `v7.0.11-main-stable` - Primary stable tag
 - `v7.0.11-main-{commit}` - Commit-specific tag
 - `main-latest` - Latest from main branch
 
-**Suricata 8.x Branch (Latest Features)**
+**Suricata 8.x Branch (Future Development)**
 - `v8.0.0-latest` - Primary 8.x tag
 - `v8.0.0-suricata-8.x-{commit}` - Commit-specific tag
 - `suricata-8.x-latest` - Latest from 8.x branch
-
-**Suricata 7.x Legacy Branch**
-- `v7.0.11-legacy` - Legacy 7.x tag
-- `v7.0.11-suricata-7.x-{commit}` - Commit-specific tag
-- `suricata-7.x-latest` - Latest from legacy branch
 
 #### **ECR Benefits**
 - **Persistent Storage**: No expiration limits (unlike CircleCI artifacts)
@@ -559,11 +555,10 @@ Images are available in AWS ECR (see [Getting Built Images](#getting-built-image
 ### Development Workflow
 
 #### Branch Management
-The project uses a multi-branch strategy with automatic CI/CD:
+The project uses a simplified two-branch strategy with automatic CI/CD:
 
-- **main branch**: Stable Suricata 7.x builds (production-ready)
-- **suricata-8.x branch**: Latest Suricata 8.x builds (advanced features)
-- **suricata-7.x branch**: Legacy Suricata 7.x builds
+- **main branch**: Suricata 7.x stable builds (DEFAULT BRANCH - production-ready)
+- **suricata-8.x branch**: Future Suricata 8.x development (advanced features)
 
 #### Pull Request Workflow
 When pushing to feature branches, Bitbucket will suggest creating pull requests:

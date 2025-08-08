@@ -19,10 +19,8 @@
 # - RPM package generation capability
 #
 # Multi-Version Support:
-# - main branch: Suricata 7.x Oracle Linux (stable, production-ready)
-# - suricata-8.x branch: Suricata 8.x Oracle Linux (latest features)
-# - suricata-7.x branch: Suricata 7.x Oracle Linux (legacy support)
-# - legacy-refactor branch: Current refactoring work
+# - main branch: Suricata 7.x Oracle Linux (DEFAULT BRANCH - stable, production-ready)
+# - suricata-8.x branch: Suricata 8.x Oracle Linux (future development)
 #
 # AWS ECR Deployment (CURRENT):
 # - Images pushed to: 339712848218.dkr.ecr.us-east-1.amazonaws.com/ecoe/pe/engineering/suricata
@@ -626,88 +624,9 @@ workflows:
             branches:
               only: suricata-8.x
 
-  # Legacy workflow for Suricata 7.x Oracle Linux (suricata-7.x branch)
-  build_scan_deploy_7x_legacy:
-    jobs:
-      - build:
-          name: "build-7x-legacy"
-          suricata-version: "7.0.11"
-          oracle-version: "9"
-          build-variant: "afpacket"
-          hyperscan-version: "5.4.0"
-          filters:
-            branches:
-              only: suricata-7.x
-      - scan:
-          name: "scan-7x-legacy"
-          requires:
-            - "build-7x-legacy"
-          filters:
-            branches:
-              only: suricata-7.x
-      - push-to-ecr:
-          name: "push-7x-legacy"
-          image-tag: "v7.0.11-legacy"
-          suricata-version: "7.0.11"
-          requires:
-            - "scan-7x-legacy"
-          filters:
-            branches:
-              only: suricata-7.x
-      # TEMPORARY: Create comprehensive artifacts (remove once ECR integration is fully stable)
-      - create-artifacts:
-          name: "artifacts-7x-legacy"
-          suricata-version: "7.0.11"
-          oracle-version: "9"
-          build-variant: "afpacket"
-          image-tag: "v7.0.11-legacy"
-          requires:
-            - "scan-7x-legacy"
-          filters:
-            branches:
-              only: suricata-7.x
 
-  # TEMPORARY: Legacy refactor workflow (legacy-refactor branch)
-  # This workflow supports the current legacy refactoring work using Oracle Linux
-  build_scan_deploy_legacy_refactor:
-    jobs:
-      - build:
-          name: "build-legacy-refactor"
-          suricata-version: "7.0.11"
-          oracle-version: "9"
-          build-variant: "afpacket"
-          hyperscan-version: "5.4.0"
-          filters:
-            branches:
-              only: legacy-refactor
-      - scan:
-          name: "scan-legacy-refactor"
-          requires:
-            - "build-legacy-refactor"
-          filters:
-            branches:
-              only: legacy-refactor
-      - push-to-ecr:
-          name: "push-legacy-refactor"
-          image-tag: "v7.0.11-legacy-refactor"
-          suricata-version: "7.0.11"
-          requires:
-            - "scan-legacy-refactor"
-          filters:
-            branches:
-              only: legacy-refactor
-      # TEMPORARY: Create comprehensive artifacts (remove once ECR integration is fully stable)
-      - create-artifacts:
-          name: "artifacts-legacy-refactor"
-          suricata-version: "7.0.11"
-          oracle-version: "9"
-          build-variant: "afpacket"
-          image-tag: "v7.0.11-legacy-refactor"
-          requires:
-            - "scan-legacy-refactor"
-          filters:
-            branches:
-              only: legacy-refactor
+
+
 
 # =============================================================================
 # DOCKER HUB WORKFLOWS (COMMENTED OUT - FOR FUTURE USE)

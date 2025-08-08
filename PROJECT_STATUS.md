@@ -1,8 +1,8 @@
 # Suricata Container Project Status
 
 **Date**: January 2025
-**Status**: PRODUCTION READY
-**Git Branch**: legacy-refactor
+**Status**: PRODUCTION READY - LEGACY REFACTOR COMPLETE
+**Git Branch**: main (DEFAULT BRANCH - Suricata 7.x stable)
 **Bitbucket Repository**: https://bitbucket.org/cis-devops/suricata-container
 
 ## Current Status
@@ -142,7 +142,7 @@ docker run -d --name suricata-napatech \
 **WORKING**: Dual-variant Suricata 7.0.11 containers with all modern security features
 **OPTIMIZED**: Industry-leading size optimization (252MB Alpine, 520MB Oracle Linux)
 **DOCUMENTED**: Complete professional documentation with all emoticons removed
-**VERSIONED**: Proper git repository on legacy-refactor branch
+**VERSIONED**: Clean git repository on main branch (simplified branch structure)
 **TESTED**: Both variants verified working on macOS to Linux deployment
 **LEGACY COMPATIBLE**: Oracle Linux variant includes all 57 legacy packages
 
@@ -152,7 +152,7 @@ docker run -d --name suricata-napatech \
 ## How to Resume Work
 
 1. **Current directory**: `/Users/cmcc/development/CIS/cis-devops/suricata-container`
-2. **Git repository**: legacy-refactor branch with complete history
+2. **Git repository**: main branch (DEFAULT) with clean Oracle Linux implementation
 3. **Working containers**:
    - `suricata:7.0.11` (252MB Alpine)
    - `suricata:7.0.11-ol9-afpacket` (520MB Oracle Linux)
