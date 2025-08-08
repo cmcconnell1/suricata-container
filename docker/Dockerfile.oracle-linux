@@ -224,10 +224,19 @@ RUN curl -L https://www.openinfosecfoundation.org/download/suricata-${SURICATA_V
 # Apply Napatech compatibility patch for Suricata source
 RUN if [ "$BUILD_VARIANT" = "napatech" ]; then \
         echo "Applying Napatech compatibility patch to Suricata source..."; \
-        # Fix source-napatech.c variable declaration issue
-        sed -i 's/void \*stat_cmd;/NtNetRxCmd_t stat_cmd;/' src/source-napatech.c && \
-        # Verify the patch was applied
-        grep -n "NtNetRxCmd_t stat_cmd" src/source-napatech.c || echo "Patch verification failed"; \
+        # Check if source-napatech.c exists and show current declaration
+        if [ -f "src/source-napatech.c" ]; then \
+            echo "Found source-napatech.c, checking current stat_cmd declaration:"; \
+            grep -n "stat_cmd" src/source-napatech.c | head -5; \
+            # Fix source-napatech.c variable declaration issue
+            sed -i 's/void \*stat_cmd;/NtNetRxCmd_t stat_cmd;/' src/source-napatech.c && \
+            # Verify the patch was applied
+            echo "After patch, stat_cmd declarations:"; \
+            grep -n "NtNetRxCmd_t stat_cmd" src/source-napatech.c || echo "Patch verification failed"; \
+        else \
+            echo "source-napatech.c not found in src/ directory"; \
+            find . -name "source-napatech.c" -type f; \
+        fi; \
     fi
 
 # Configure Suricata with legacy settings and gcc-toolset-13
