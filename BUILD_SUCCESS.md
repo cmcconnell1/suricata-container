@@ -2,7 +2,7 @@
 
 ## Suricata 7.0.11 Dual-Variant Containers Successfully Built and Tested
 
-**Date**: January 2025
+**Date**: August 8, 2025
 **Status**: PRODUCTION READY
 
 ---

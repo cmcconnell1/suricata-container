@@ -177,7 +177,7 @@ make help
 
 ## Build Status
 
-### Latest Successful Builds (Verified January 2025)
+### Latest Successful Builds (Verified August 8, 2025)
 
 #### Alpine Linux Variant - LIGHTWEIGHT ALTERNATIVE
 - **Version**: Suricata 7.0.11 (stable, production-ready)
