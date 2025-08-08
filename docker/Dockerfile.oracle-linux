@@ -228,8 +228,8 @@ RUN if [ "$BUILD_VARIANT" = "napatech" ]; then \
         if [ -f "src/source-napatech.c" ]; then \
             echo "Found source-napatech.c, checking current stat_cmd declaration:"; \
             grep -n "stat_cmd" src/source-napatech.c | head -5; \
-            # Fix source-napatech.c variable declaration issue
-            sed -i 's/void \*stat_cmd;/NtNetRxCmd_t stat_cmd;/' src/source-napatech.c && \
+            # Fix source-napatech.c variable declaration issue (change NtNetRx_t to NtNetRxCmd_t)
+            sed -i 's/NtNetRx_t stat_cmd;/NtNetRxCmd_t stat_cmd;/' src/source-napatech.c && \
             # Verify the patch was applied
             echo "After patch, stat_cmd declarations:"; \
             grep -n "NtNetRxCmd_t stat_cmd" src/source-napatech.c || echo "Patch verification failed"; \
