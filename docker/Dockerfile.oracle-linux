@@ -139,6 +139,8 @@ RUN if [ "$BUILD_VARIANT" = "napatech" ]; then \
          # Create comprehensive Napatech header for build compatibility
          echo '#ifndef NT_H' > /opt/napatech3/include/nt.h && \
          echo '#define NT_H' >> /opt/napatech3/include/nt.h && \
+         echo '#include <stdint.h>' >> /opt/napatech3/include/nt.h && \
+         echo '#include <stddef.h>' >> /opt/napatech3/include/nt.h && \
          echo 'typedef void* NtNetBuf_t;' >> /opt/napatech3/include/nt.h && \
          echo 'typedef void* NtNetStreamRx_t;' >> /opt/napatech3/include/nt.h && \
          echo 'typedef void* NtNetStreamTx_t;' >> /opt/napatech3/include/nt.h && \
@@ -159,7 +161,14 @@ RUN if [ "$BUILD_VARIANT" = "napatech" ]; then \
          echo '#define NT_TIMESTAMP_TYPE_PCAP_NANOTIME 3' >> /opt/napatech3/include/nt.h && \
          echo '#define NT_TIMESTAMP_TYPE_NATIVE_NDIS 4' >> /opt/napatech3/include/nt.h && \
          echo '#define NT_NETRX_READ_CMD_STREAM_DROP 1' >> /opt/napatech3/include/nt.h && \
-         echo 'typedef struct { int cmd; union { struct { int pktsDropped; } streamDrop; } u; } NtNetRxCmd_t;' >> /opt/napatech3/include/nt.h && \
+         echo 'typedef struct {' >> /opt/napatech3/include/nt.h && \
+         echo '    int cmd;' >> /opt/napatech3/include/nt.h && \
+         echo '    union {' >> /opt/napatech3/include/nt.h && \
+         echo '        struct {' >> /opt/napatech3/include/nt.h && \
+         echo '            uint64_t pktsDropped;' >> /opt/napatech3/include/nt.h && \
+         echo '        } streamDrop;' >> /opt/napatech3/include/nt.h && \
+         echo '    } u;' >> /opt/napatech3/include/nt.h && \
+         echo '} NtNetRxCmd_t;' >> /opt/napatech3/include/nt.h && \
          echo 'typedef NtNetRxCmd_t* NtNetRxCmd_p;' >> /opt/napatech3/include/nt.h && \
          echo 'NT_STATUS NT_Init(int);' >> /opt/napatech3/include/nt.h && \
          echo 'NT_STATUS NT_Done(void);' >> /opt/napatech3/include/nt.h && \
@@ -168,7 +177,7 @@ RUN if [ "$BUILD_VARIANT" = "napatech" ]; then \
          echo 'NT_STATUS NT_NetRxClose(NtNetStreamRx_t);' >> /opt/napatech3/include/nt.h && \
          echo 'NT_STATUS NT_NetRxGet(NtNetStreamRx_t, NtNetBuf_t*, int);' >> /opt/napatech3/include/nt.h && \
          echo 'NT_STATUS NT_NetRxRelease(NtNetStreamRx_t, NtNetBuf_t);' >> /opt/napatech3/include/nt.h && \
-         echo 'NT_STATUS NT_NetRxRead(NtNetStreamRx_t, void*);' >> /opt/napatech3/include/nt.h && \
+         echo 'NT_STATUS NT_NetRxRead(NtNetStreamRx_t, NtNetRxCmd_p);' >> /opt/napatech3/include/nt.h && \
          echo 'int NT_NET_GET_PKT_TIMESTAMP(NtNetBuf_t);' >> /opt/napatech3/include/nt.h && \
          echo 'int NT_NET_GET_PKT_TIMESTAMP_TYPE(NtNetBuf_t);' >> /opt/napatech3/include/nt.h && \
          echo 'void* NT_NET_GET_PKT_L2_PTR(NtNetBuf_t);' >> /opt/napatech3/include/nt.h && \
@@ -177,7 +186,11 @@ RUN if [ "$BUILD_VARIANT" = "napatech" ]; then \
          # Also create napatech.h as an alias
          ln -sf nt.h /opt/napatech3/include/napatech.h && \
          # Create stub library
-         echo 'int NT_Init(int x) { return 0; }' > /tmp/ntapi_stub.c && \
+         echo '#include <stdint.h>' > /tmp/ntapi_stub.c && \
+         echo '#include <stddef.h>' >> /tmp/ntapi_stub.c && \
+         echo 'typedef struct { int cmd; union { struct { uint64_t pktsDropped; } streamDrop; } u; } NtNetRxCmd_t;' >> /tmp/ntapi_stub.c && \
+         echo 'typedef NtNetRxCmd_t* NtNetRxCmd_p;' >> /tmp/ntapi_stub.c && \
+         echo 'int NT_Init(int x) { return 0; }' >> /tmp/ntapi_stub.c && \
          echo 'int NT_Done(void) { return 0; }' >> /tmp/ntapi_stub.c && \
          gcc -shared -fPIC -o /opt/napatech3/lib/libntapi.so /tmp/ntapi_stub.c && \
          echo "Napatech placeholder structure created" && \
@@ -223,6 +236,10 @@ RUN if [ "$BUILD_VARIANT" = "napatech" ]; then \
                             # Create a comprehensive stub library for build compatibility
                             echo '/* Napatech API stub implementation for build compatibility */' > /tmp/ntapi_stub.c && \
                             echo '#include <stdio.h>' >> /tmp/ntapi_stub.c && \
+                            echo '#include <stdint.h>' >> /tmp/ntapi_stub.c && \
+                            echo '#include <stddef.h>' >> /tmp/ntapi_stub.c && \
+                            echo 'typedef struct { int cmd; union { struct { uint64_t pktsDropped; } streamDrop; } u; } NtNetRxCmd_t;' >> /tmp/ntapi_stub.c && \
+                            echo 'typedef NtNetRxCmd_t* NtNetRxCmd_p;' >> /tmp/ntapi_stub.c && \
                             echo 'int NT_Init(int x) { return 0; }' >> /tmp/ntapi_stub.c && \
                             echo 'int NT_Done(void) { return 0; }' >> /tmp/ntapi_stub.c && \
                             echo 'int NT_NetRxOpen(void* stream, const char* name, int mode) { return 0; }' >> /tmp/ntapi_stub.c && \
@@ -234,7 +251,7 @@ RUN if [ "$BUILD_VARIANT" = "napatech" ]; then \
                             echo 'int NT_NetRxOpen(void* stream, const char* name, int interface, int streamId, int hba) { return 0; }' >> /tmp/ntapi_stub.c && \
                             echo 'int NT_NetRxClose(void* stream) { return 0; }' >> /tmp/ntapi_stub.c && \
                             echo 'int NT_NetRxGet(void* stream, void* buffer, int timeout) { return -2; }' >> /tmp/ntapi_stub.c && \
-                            echo 'int NT_NetRxRead(void* stream, void* cmd) { return 0; }' >> /tmp/ntapi_stub.c && \
+                            echo 'int NT_NetRxRead(void* stream, NtNetRxCmd_p cmd) { if(cmd) { cmd->u.streamDrop.pktsDropped = 0; } return 0; }' >> /tmp/ntapi_stub.c && \
                             echo 'int NT_NET_GET_PKT_TIMESTAMP(void* buffer) { return 0; }' >> /tmp/ntapi_stub.c && \
                             echo 'int NT_NET_GET_PKT_TIMESTAMP_TYPE(void* buffer) { return 1; }' >> /tmp/ntapi_stub.c && \
                             echo 'void* NT_NET_GET_PKT_L2_PTR(void* buffer) { return NULL; }' >> /tmp/ntapi_stub.c && \
