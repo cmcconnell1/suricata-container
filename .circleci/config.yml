@@ -543,10 +543,23 @@ workflows:
   version: 2
 
   # Main workflow for Suricata 7.x Oracle Linux (main branch - default/stable)
+  # PRIMARY: Napatech variant (matches legacy albert_build_scripts behavior)
+  # SECONDARY: AF_PACKET variant (modern software-based alternative)
   build_scan_deploy_7x:
     jobs:
+      # PRIMARY BUILD: Napatech variant (hardware-accelerated, legacy compatible)
       - build:
-          name: "build-7x-main"
+          name: "build-7x-main-napatech"
+          suricata-version: "7.0.11"
+          oracle-version: "9"
+          build-variant: "napatech"
+          hyperscan-version: "5.4.0"
+          filters:
+            branches:
+              only: main
+      # SECONDARY BUILD: AF_PACKET variant (software-based alternative)
+      - build:
+          name: "build-7x-main-afpacket"
           suricata-version: "7.0.11"
           oracle-version: "9"
           build-variant: "afpacket"
@@ -554,31 +567,63 @@ workflows:
           filters:
             branches:
               only: main
+      # SCAN: Napatech variant (primary)
       - scan:
-          name: "scan-7x-main"
+          name: "scan-7x-main-napatech"
           requires:
-            - "build-7x-main"
+            - "build-7x-main-napatech"
           filters:
             branches:
               only: main
+      # SCAN: AF_PACKET variant (secondary)
+      - scan:
+          name: "scan-7x-main-afpacket"
+          requires:
+            - "build-7x-main-afpacket"
+          filters:
+            branches:
+              only: main
+      # ECR PUSH: Napatech variant (primary - matches legacy expectations)
       - push-to-ecr:
-          name: "push-7x-main"
-          image-tag: "v7.0.11-main-stable"
+          name: "push-7x-main-napatech"
+          image-tag: "v7.0.11-main-napatech"
           suricata-version: "7.0.11"
           requires:
-            - "scan-7x-main"
+            - "scan-7x-main-napatech"
           filters:
             branches:
               only: main
-      # TEMPORARY: Create comprehensive artifacts (remove once ECR integration is fully stable)
+      # ECR PUSH: AF_PACKET variant (secondary - modern alternative)
+      - push-to-ecr:
+          name: "push-7x-main-afpacket"
+          image-tag: "v7.0.11-main-afpacket"
+          suricata-version: "7.0.11"
+          requires:
+            - "scan-7x-main-afpacket"
+          filters:
+            branches:
+              only: main
+      # ARTIFACTS: Napatech variant (primary)
       - create-artifacts:
-          name: "artifacts-7x-main"
+          name: "artifacts-7x-main-napatech"
+          suricata-version: "7.0.11"
+          oracle-version: "9"
+          build-variant: "napatech"
+          image-tag: "v7.0.11-main-napatech"
+          requires:
+            - "scan-7x-main-napatech"
+          filters:
+            branches:
+              only: main
+      # ARTIFACTS: AF_PACKET variant (secondary)
+      - create-artifacts:
+          name: "artifacts-7x-main-afpacket"
           suricata-version: "7.0.11"
           oracle-version: "9"
           build-variant: "afpacket"
-          image-tag: "v7.0.11-main-stable"
+          image-tag: "v7.0.11-main-afpacket"
           requires:
-            - "scan-7x-main"
+            - "scan-7x-main-afpacket"
           filters:
             branches:
               only: main

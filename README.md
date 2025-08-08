@@ -349,7 +349,7 @@ The CircleCI pipeline automatically:
 
 ### Branch-Specific Builds
 
-- **main branch** → Suricata 7.0.11 Oracle Linux stable (520MB) - DEFAULT BRANCH
+- **main branch** → Dual builds: Napatech (primary, hardware-accelerated) + AF_PACKET (secondary, software-based) - DEFAULT BRANCH
 - **suricata-8.x branch** → Future Suricata 8.x development
 
 ## Getting Built Images
@@ -406,8 +406,9 @@ docker run -d --name suricata \
 Each build creates multiple tags for flexible deployment:
 
 **Main Branch (Suricata 7.x Stable - DEFAULT & RECOMMENDED)**
-- `v7.0.11-main-stable` - Primary stable tag
-- `v7.0.11-main-{commit}` - Commit-specific tag
+- `v7.0.11-main-napatech` - Primary Napatech variant (hardware-accelerated)
+- `v7.0.11-main-afpacket` - Secondary AF_PACKET variant (software-based)
+- `v7.0.11-main-{commit}` - Commit-specific tags
 - `main-latest` - Latest from main branch
 
 **Suricata 8.x Branch (Future Development)**
