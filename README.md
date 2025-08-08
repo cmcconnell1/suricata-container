@@ -84,12 +84,23 @@ make build        # Alpine variant - OPTIONAL
 ### Using Published Images
 
 ```bash
-# Oracle Linux variant - Enterprise (520MB) - PRIMARY RECOMMENDED
+# Oracle Linux Napatech variant - PRIMARY (Hardware-Accelerated)
+docker pull cis-devops/suricata:7.0.11-ol9-napatech
+docker run -d --name suricata-napatech \
+  --cap-add=NET_ADMIN --cap-add=NET_RAW \
+  --network host \
+  -e INTERFACE=nt3g0 \
+  -e UPDATE_RULES=true \
+  -v ./logs:/var/log/suricata \
+  cis-devops/suricata:7.0.11-ol9-napatech
+
+# Oracle Linux AF_PACKET variant - SECONDARY (Software-Based)
 docker pull cis-devops/suricata:7.0.11-ol9-afpacket
-docker run -d --name suricata-enterprise \
+docker run -d --name suricata-afpacket \
   --cap-add=NET_ADMIN --cap-add=NET_RAW \
   --network host \
   -e INTERFACE=eth0 \
+  -e UPDATE_RULES=true \
   -v ./logs:/var/log/suricata \
   cis-devops/suricata:7.0.11-ol9-afpacket
 
@@ -104,8 +115,8 @@ docker run -d --name suricata-alpine \
   cis-devops/suricata:7.0.11-alpine
 
 # Check logs and status
-docker logs suricata-enterprise
-docker exec -it suricata-enterprise suricata -V
+docker logs suricata-napatech  # or suricata-afpacket or suricata-alpine
+docker exec -it suricata-napatech suricata -V
 ```
 
 ### Building from Source
@@ -138,15 +149,41 @@ make help
 - **Cloud-Native**: Optimized for Kubernetes and container orchestration
 - **Fast Deployment**: Minimal attack surface and quick startup
 
-### Oracle Linux Variant (520MB)
-- **Oracle Linux 9** base for enterprise compatibility (legacy refactored from albert_build_scripts)
+### Oracle Linux Dual Variants (520MB each)
+
+The project builds **two distinct variants** to support different deployment scenarios:
+
+#### **Napatech Variant (PRIMARY - Hardware-Accelerated)**
+- **Purpose**: High-performance enterprise deployments with specialized hardware
+- **Hardware Requirements**: Napatech network acceleration cards
+- **Capture Method**: Hardware-accelerated packet capture via Napatech drivers
+- **Performance**: Extremely high throughput with minimal CPU overhead
+- **Legacy Compatibility**: Direct replacement for albert_build_scripts Ansible system
+- **Use Cases**:
+  - Enterprise network security sensors
+  - High-traffic network monitoring
+  - Production environments with Napatech hardware
+  - Legacy sensor deployments requiring hardware acceleration
+
+#### **AF_PACKET Variant (SECONDARY - Software-Based)**
+- **Purpose**: Modern containerized deployments on standard hardware
+- **Hardware Requirements**: Standard network interfaces (eth0, ens0, etc.)
+- **Capture Method**: Linux AF_PACKET sockets (software-based)
+- **Performance**: CPU-intensive but works on any hardware
+- **Cloud Compatibility**: Ideal for cloud and virtualized environments
+- **Use Cases**:
+  - Cloud-native deployments
+  - Development and testing environments
+  - Standard server hardware without specialized cards
+  - Kubernetes and container orchestration platforms
+
+#### **Common Features (Both Variants)**
+- **Oracle Linux 9** base for enterprise compatibility
 - **Suricata 7.0.11** with enhanced SIMD optimizations and gcc-toolset-13
-- **Dual Build Variants**: AF_PACKET (standard) and Napatech (hardware acceleration)
 - **Enterprise Ready**: 50% smaller than industry standards while maintaining full compatibility
 - **Legacy Support**: All 57 legacy packages included from original build scripts
 - **Enhanced Performance**: SSE_4_2, SSE_4_1, SSE_3, SSE_2 optimizations
 - **Security Hardening**: Stack protection and FORTIFY_SOURCE enabled
-- **Napatech Support**: Optional hardware acceleration with Napatech 3GD drivers (v12.4.3.1)
 - **RPM Generation**: Creates distribution-ready RPM packages
 
 ### Common Features (Both Variants)
@@ -190,16 +227,30 @@ make help
 - **suricata-update**: Fully working with all dependencies resolved
 - **Use Case**: Recommended for cloud-native and modern deployments
 
-#### Oracle Linux Variant - RECOMMENDED FOR ENTERPRISE DEPLOYMENTS
+#### Oracle Linux Napatech Variant - PRIMARY (Hardware-Accelerated)
 - **Version**: Suricata 7.0.11 (stable, production-ready)
 - **Base Image**: Oracle Linux 9 (200MB base)
 - **Final Image Size**: 520MB (enterprise-optimized with 80-85% size reduction)
-- **Rust Support**: 1.76.0 with enhanced SIMD
-- **Python**: 3.11 (enterprise ecosystem)
+- **Capture Method**: Napatech hardware acceleration
+- **Hardware Requirements**: Napatech network cards
+- **Build Status**: Successfully built and tested locally
+- **Features**: Enhanced SIMD optimizations, stack protection, legacy compatibility
+- **Legacy Support**: All 57 legacy packages included, direct albert_build_scripts replacement
+- **Performance**: Hardware-accelerated packet capture with minimal CPU overhead
+- **Use Case**: Enterprise sensors with Napatech hardware (PRIMARY DEPLOYMENT)
+
+#### Oracle Linux AF_PACKET Variant - SECONDARY (Software-Based)
+- **Version**: Suricata 7.0.11 (stable, production-ready)
+- **Base Image**: Oracle Linux 9 (200MB base)
+- **Final Image Size**: 520MB (enterprise-optimized with 80-85% size reduction)
+- **Capture Method**: Linux AF_PACKET sockets (software-based)
+- **Hardware Requirements**: Standard network interfaces (eth0, ens0, etc.)
 - **Build Status**: Successfully built and tested locally
 - **Features**: Enhanced SIMD optimizations, stack protection, legacy compatibility
 - **Legacy Support**: All 57 legacy packages included
-- **Use Case**: Recommended for enterprise and legacy infrastructure
+- **Cloud Compatibility**: Ideal for containerized and cloud deployments
+- **Performance**: CPU-intensive but works on any standard hardware
+- **Use Case**: Cloud-native deployments and standard server hardware
 
 ##### **Multi-Stage Build Efficiency Analysis**
 - **Suricata Binary**: 90MB (full-featured with all optimizations)
@@ -520,12 +571,32 @@ Always test version combinations before production deployment.
 
 ## CI/CD Pipeline
 
-The project includes a complete CircleCI pipeline that:
+The project includes a complete CircleCI pipeline with **dual-variant builds**:
 
-1. **Builds** the Docker image with multi-stage optimization and layer caching
-2. **Tests** the built image functionality (version check, suricata-update, configuration)
-3. **Scans** for security vulnerabilities using Trivy
-4. **Deploys** Docker images to AWS ECR with temporary credentials
+### **Dual Build Workflow**
+
+Each commit to the main branch triggers **parallel builds** of both variants:
+
+```
+build_scan_deploy_7x workflow:
+├── build-7x-main-napatech (PRIMARY)
+│   ├── scan-7x-main-napatech
+│   ├── push-7x-main-napatech → ECR: v7.0.11-main-napatech
+│   └── artifacts-7x-main-napatech
+└── build-7x-main-afpacket (SECONDARY)
+    ├── scan-7x-main-afpacket
+    ├── push-7x-main-afpacket → ECR: v7.0.11-main-afpacket
+    └── artifacts-7x-main-afpacket
+```
+
+**CircleCI Workflow Visualization**: The pipeline shows both variants building in parallel, with the Napatech variant as the primary build (matching legacy albert_build_scripts behavior) and AF_PACKET as the secondary modern alternative.
+
+### **Pipeline Stages**
+
+1. **Builds** both Docker variants with multi-stage optimization and layer caching
+2. **Tests** both built images (version check, suricata-update, configuration)
+3. **Scans** both variants for security vulnerabilities using Trivy
+4. **Deploys** both Docker images to AWS ECR with distinct tags
 
 ### Pipeline Features
 
