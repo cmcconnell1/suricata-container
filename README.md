@@ -591,6 +591,10 @@ build_scan_deploy_7x workflow:
 
 **CircleCI Workflow Visualization**: The pipeline shows both variants building in parallel, with the Napatech variant as the primary build (matching legacy albert_build_scripts behavior) and AF_PACKET as the secondary modern alternative.
 
+![CircleCI Dual Build Workflow](docs/images/circleci-dual-build-workflow.png)
+
+*Screenshot showing the CircleCI pipeline executing both Napatech and AF_PACKET builds in parallel, with distinct job names and successful completion of both variants.*
+
 ### **Pipeline Stages**
 
 1. **Builds** both Docker variants with multi-stage optimization and layer caching
