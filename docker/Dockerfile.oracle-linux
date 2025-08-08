@@ -322,6 +322,15 @@ RUN curl -L https://github.com/intel/hyperscan/archive/v${HYPERSCAN_VERSION}.tar
 WORKDIR /usr/src/suricata
 RUN curl -L https://www.openinfosecfoundation.org/download/suricata-${SURICATA_VERSION}.tar.gz | tar xz --strip-components=1
 
+# Apply Napatech compatibility patch for Suricata source
+RUN if [ "$BUILD_VARIANT" = "napatech" ]; then \
+        echo "Applying Napatech compatibility patch to Suricata source..."; \
+        # Fix source-napatech.c variable declaration issue
+        sed -i 's/void \*stat_cmd;/NtNetRxCmd_t stat_cmd;/' src/source-napatech.c && \
+        # Verify the patch was applied
+        grep -n "NtNetRxCmd_t stat_cmd" src/source-napatech.c || echo "Patch verification failed"; \
+    fi
+
 # Configure Suricata with legacy settings and gcc-toolset-13
 # This replicates the exact configuration from legacy build_suricata_ol9.yml
 RUN if [ "$BUILD_VARIANT" = "napatech" ]; then \
