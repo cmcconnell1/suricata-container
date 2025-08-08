@@ -1,0 +1,14 @@
+--- package_install_3gd.sh	2020-07-02 14:42:03.000000000 +0000
++++ package_install_3gd.sh	2020-09-10 21:55:33.769645899 +0000
+@@ -243,9 +243,9 @@
+ fi
+ 
+ # Build makeself options
+-MAKESELF_OPTIONS=""
++MAKESELF_OPTIONS="--target $HOME/tmp"
+ if test ${OPT_INSTALL_NOX11} -ne 0; then
+-    MAKESELF_OPTIONS="--nox11"
++    MAKESELF_OPTIONS="--nox11 --target $HOME/tmp"
+ fi
+ # Build tools and driver install options
+ INSTALL_OPTIONS="--yestoall"
