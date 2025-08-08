@@ -69,8 +69,8 @@ executors:
     docker:
       # Use CircleCI's base image with Docker and common tools
       - image: cimg/base:2023.03
-    # Medium resource class provides sufficient CPU/memory for builds
-    resource_class: medium
+    # Large resource class for Oracle Linux builds (Hyperscan compilation requires significant resources)
+    resource_class: large
 
 jobs:
   build:
@@ -97,17 +97,35 @@ jobs:
       # Build image with version-specific arguments
       - run:
           name: Build Suricata container
+          no_output_timeout: 30m
           command: |
             echo "Building Suricata << parameters.suricata-version >> on Oracle Linux << parameters.oracle-version >>"
             echo "Build variant: << parameters.build-variant >>, Hyperscan: << parameters.hyperscan-version >>"
+            echo "Available resources:"
+            echo "CPU cores: $(nproc)"
+            echo "Memory: $(free -h)"
+            echo "Disk space: $(df -h)"
 
+            # Build with progress output and error handling
+            set -e
             docker build \
+              --progress=plain \
               --build-arg SURICATA_VERSION=<< parameters.suricata-version >> \
               --build-arg ORACLE_VERSION=<< parameters.oracle-version >> \
               --build-arg BUILD_VARIANT=<< parameters.build-variant >> \
               --build-arg HYPERSCAN_VERSION=<< parameters.hyperscan-version >> \
               -f docker/Dockerfile.oracle-linux \
-              -t suricata:latest .
+              -t suricata:latest . || {
+                echo "Build failed! Checking system resources:"
+                echo "Memory usage: $(free -h)"
+                echo "Disk usage: $(df -h)"
+                echo "Docker system info:"
+                docker system df
+                exit 1
+              }
+
+            echo "Build completed successfully!"
+            docker images suricata:latest
       
       # Run comprehensive functionality tests
       - run:
