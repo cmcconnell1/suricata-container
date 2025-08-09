@@ -177,7 +177,10 @@ RUN if [ "$BUILD_VARIANT" = "napatech" ]; then \
             echo "Creating Napatech build-compatible fallback structure..."; \
             mkdir -p /opt/napatech3/{include,lib} && \
             # Copy pre-built Napatech header first
+            echo "DEBUG: Copying custom header from /tmp/nt.h to /opt/napatech3/include/nt.h" && \
             cp /tmp/nt.h /opt/napatech3/include/nt.h && \
+            echo "DEBUG: Verifying custom header was copied correctly:" && \
+            grep -c "LEGACY_REFACTOR_CUSTOM_HEADER_LOADED" /opt/napatech3/include/nt.h || echo "ERROR: Custom header marker not found after copy!" && \
             ln -sf nt.h /opt/napatech3/include/napatech.h && \
             # Build stub library using the header from the final location
             gcc -shared -fPIC -I/opt/napatech3/include -o /opt/napatech3/lib/libntapi.so /tmp/ntapi_stub.c && \
@@ -202,6 +205,8 @@ RUN if [ "$BUILD_VARIANT" = "napatech" ]; then \
             echo "query_v2 found: $(grep -c query_v2 /opt/napatech3/include/nt.h || echo 0)"; \
             echo "stat field found: $(grep -c 'stat;' /opt/napatech3/include/nt.h || echo 0)"; \
             echo "LEGACY_REFACTOR_CUSTOM_HEADER_LOADED found: $(grep -c 'LEGACY_REFACTOR_CUSTOM_HEADER_LOADED' /opt/napatech3/include/nt.h || echo 0)"; \
+            echo "DEBUG: Full header file content (first 20 lines):"; \
+            head -20 /opt/napatech3/include/nt.h || echo "Could not read header file"; \
         fi; \
         # Check for any other nt.h files in the system that might conflict
         echo "DEBUG: Searching for all nt.h files in system:"; \
