@@ -290,12 +290,22 @@ RUN if [ "$BUILD_VARIANT" = "napatech" ]; then \
 # Build and install Suricata
 # Force Suricata to use our custom Napatech header by modifying the source
 RUN echo "Forcing Suricata to use our custom Napatech header..." && \
-    # Replace the Napatech include in util-napatech.c to use our specific header
-    sed -i 's/#include <nt\.h>/#include "\/opt\/napatech3\/include\/nt.h"/g' src/util-napatech.c && \
-    sed -i 's/#include <napatech\.h>/#include "\/opt\/napatech3\/include\/nt.h"/g' src/util-napatech.c && \
-    # Verify the change
-    echo "DEBUG: Checking util-napatech.c include statements:" && \
-    grep -n "include.*nt\.h\|include.*napatech\.h" src/util-napatech.c || echo "No napatech includes found" && \
+    # Find all Suricata header files that might include Napatech headers
+    echo "DEBUG: Searching for Napatech includes in all Suricata headers:" && \
+    find src/ -name "*.h" -exec grep -l "include.*nt\.h\|include.*napatech\.h" {} \; || echo "No headers with napatech includes found" && \
+    # Check specific files that util-napatech.c includes
+    echo "DEBUG: Checking util-napatech.h:" && \
+    grep -n "include.*nt\.h\|include.*napatech\.h" src/util-napatech.h || echo "No napatech includes in util-napatech.h" && \
+    echo "DEBUG: Checking source-napatech.h:" && \
+    grep -n "include.*nt\.h\|include.*napatech\.h" src/source-napatech.h || echo "No napatech includes in source-napatech.h" && \
+    echo "DEBUG: Checking runmode-napatech.h:" && \
+    grep -n "include.*nt\.h\|include.*napatech\.h" src/runmode-napatech.h || echo "No napatech includes in runmode-napatech.h" && \
+    # Replace the Napatech includes in ALL header files
+    find src/ -name "*.h" -exec sed -i 's/#include <nt\.h>/#include "\/opt\/napatech3\/include\/nt.h"/g' {} \; && \
+    find src/ -name "*.h" -exec sed -i 's/#include <napatech\.h>/#include "\/opt\/napatech3\/include\/nt.h"/g' {} \; && \
+    # Also check and replace in .c files
+    find src/ -name "*.c" -exec sed -i 's/#include <nt\.h>/#include "\/opt\/napatech3\/include\/nt.h"/g' {} \; && \
+    find src/ -name "*.c" -exec sed -i 's/#include <napatech\.h>/#include "\/opt\/napatech3\/include\/nt.h"/g' {} \; && \
     make -j6 && \
     make install DESTDIR=/usr/src/suricata-install && \
     make install-conf DESTDIR=/usr/src/suricata-install
