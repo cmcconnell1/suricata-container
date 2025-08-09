@@ -177,6 +177,12 @@ RUN if [ "$BUILD_VARIANT" = "napatech" ]; then \
             echo "Creating Napatech build-compatible fallback structure..."; \
             mkdir -p /opt/napatech3/{include,lib} && \
             # Copy pre-built Napatech header first
+            echo "DEBUG: Checking what nt.h files are available in /tmp/:" && \
+            ls -la /tmp/nt.h* 2>/dev/null || echo "No nt.h files found in /tmp/" && \
+            echo "DEBUG: Checking content of /tmp/nt.h before copy:" && \
+            head -10 /tmp/nt.h 2>/dev/null || echo "Could not read /tmp/nt.h" && \
+            echo "DEBUG: Checking for our custom marker in /tmp/nt.h:" && \
+            grep -c "LEGACY_REFACTOR_CUSTOM_HEADER_LOADED" /tmp/nt.h || echo "Custom marker not found in source file!" && \
             echo "DEBUG: Copying custom header from /tmp/nt.h to /opt/napatech3/include/nt.h" && \
             cp /tmp/nt.h /opt/napatech3/include/nt.h && \
             echo "DEBUG: Verifying custom header was copied correctly:" && \
