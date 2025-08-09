@@ -119,6 +119,7 @@ RUN yum install -y ruby ruby-devel rubygems && \
 # NAPATECH PACKAGE INSTALLATION (using legacy albert_build_scripts approach)
 # -----------------------------------------------------------------------------
 # Copy legacy files for Napatech installation (updated with complete API)
+# CACHE_BUST: 2025-08-09-01:45 - Force rebuild with corrected structure
 COPY docker/legacy-files/installer.patch /tmp/installer.patch
 COPY docker/legacy-files/nt.h /tmp/nt.h
 COPY docker/legacy-files/ntapi_stub.c /tmp/ntapi_stub.c
