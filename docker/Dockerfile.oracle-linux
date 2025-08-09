@@ -286,7 +286,15 @@ RUN if [ "$BUILD_VARIANT" = "napatech" ]; then \
     fi
 
 # Build and install Suricata
-RUN make -j6 && \
+# Debug: Check compilation flags for util-napatech.c
+RUN echo "DEBUG: Checking Makefile for Napatech include paths:" && \
+    grep -A 5 -B 5 "napatech" src/Makefile || echo "No napatech references in Makefile" && \
+    echo "DEBUG: Checking CPPFLAGS and CFLAGS:" && \
+    grep -E "(CPPFLAGS|CFLAGS|INCLUDES)" src/Makefile | head -10 || echo "No flags found" && \
+    echo "DEBUG: Starting compilation with verbose output for util-napatech.c:" && \
+    make V=1 util-napatech.o 2>&1 | head -20 || echo "util-napatech.o compilation failed" && \
+    echo "DEBUG: Full compilation:" && \
+    make -j6 && \
     make install DESTDIR=/usr/src/suricata-install && \
     make install-conf DESTDIR=/usr/src/suricata-install
 
