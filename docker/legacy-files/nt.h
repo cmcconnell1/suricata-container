@@ -82,9 +82,16 @@ typedef struct {
                     uint64_t deQueued;
                     uint64_t enQueued;
                     uint32_t numaNode;
+                    struct {
+                        struct { uint64_t frames; uint64_t bytes; } rx;
+                        struct { uint64_t frames; uint64_t bytes; } drop;
+                    } stat;
                 } hb[16]; // Max host buffers
             } data;
         } usageData_v0;
+        struct {
+            uint8_t clear;
+        } query_v2;
     } u;
 } NtStatistics_t;
 
@@ -121,3 +128,5 @@ void* NT_NET_GET_PKT_L2_PTR(NtNetBuf_t);
 int NT_NET_GET_PKT_WIRE_LENGTH(NtNetBuf_t);
 
 #endif
+#define NT_STATISTICS_READ_CMD_QUERY_V2 2
+#define LEGACY_REFACTOR_CUSTOM_HEADER_LOADED 1
