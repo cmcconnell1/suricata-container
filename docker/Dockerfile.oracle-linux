@@ -288,7 +288,15 @@ RUN if [ "$BUILD_VARIANT" = "napatech" ]; then \
     fi
 
 # Build and install Suricata
-RUN make -j6 && \
+# Force Suricata to use our custom Napatech header by modifying the source
+RUN echo "Forcing Suricata to use our custom Napatech header..." && \
+    # Replace the Napatech include in util-napatech.c to use our specific header
+    sed -i 's/#include <nt\.h>/#include "\/opt\/napatech3\/include\/nt.h"/g' src/util-napatech.c && \
+    sed -i 's/#include <napatech\.h>/#include "\/opt\/napatech3\/include\/nt.h"/g' src/util-napatech.c && \
+    # Verify the change
+    echo "DEBUG: Checking util-napatech.c include statements:" && \
+    grep -n "include.*nt\.h\|include.*napatech\.h" src/util-napatech.c || echo "No napatech includes found" && \
+    make -j6 && \
     make install DESTDIR=/usr/src/suricata-install && \
     make install-conf DESTDIR=/usr/src/suricata-install
 
