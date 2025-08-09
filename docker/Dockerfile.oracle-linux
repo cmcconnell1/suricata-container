@@ -176,11 +176,11 @@ RUN if [ "$BUILD_VARIANT" = "napatech" ]; then \
         if [ -n "$DOWNLOAD_FAILED" ]; then \
             echo "Creating Napatech build-compatible fallback structure..."; \
             mkdir -p /opt/napatech3/{include,lib} && \
-            # Copy pre-built Napatech header and stub files
+            # Copy pre-built Napatech header first
             cp /tmp/nt.h /opt/napatech3/include/nt.h && \
             ln -sf nt.h /opt/napatech3/include/napatech.h && \
-            # Build stub library from pre-built source
-            gcc -shared -fPIC -o /opt/napatech3/lib/libntapi.so /tmp/ntapi_stub.c && \
+            # Build stub library using the header from the final location
+            gcc -shared -fPIC -I/opt/napatech3/include -o /opt/napatech3/lib/libntapi.so /tmp/ntapi_stub.c && \
             # Create symlinks and system integration
             cd /opt/napatech3/lib && \
             ln -sf libntapi.so libntapi.so.1 && \
