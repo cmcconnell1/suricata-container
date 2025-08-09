@@ -201,7 +201,15 @@ RUN if [ "$BUILD_VARIANT" = "napatech" ]; then \
             echo "NT_STATISTICS_READ_CMD_QUERY_V2 found: $(grep -c NT_STATISTICS_READ_CMD_QUERY_V2 /opt/napatech3/include/nt.h || echo 0)"; \
             echo "query_v2 found: $(grep -c query_v2 /opt/napatech3/include/nt.h || echo 0)"; \
             echo "stat field found: $(grep -c 'stat;' /opt/napatech3/include/nt.h || echo 0)"; \
+            echo "LEGACY_REFACTOR_CUSTOM_HEADER_LOADED found: $(grep -c 'LEGACY_REFACTOR_CUSTOM_HEADER_LOADED' /opt/napatech3/include/nt.h || echo 0)"; \
         fi; \
+        # Check for any other nt.h files in the system that might conflict
+        echo "DEBUG: Searching for all nt.h files in system:"; \
+        find /usr -name "nt.h" 2>/dev/null | head -10 || echo "No system nt.h files found"; \
+        find /opt -name "nt.h" 2>/dev/null | head -10 || echo "No opt nt.h files found"; \
+        # Check include paths that might be used by gcc
+        echo "DEBUG: Checking standard include paths:"; \
+        echo | gcc -E -Wp,-v - 2>&1 | grep "^ " | head -10 || echo "Could not get include paths"; \
     else \
         echo "Skipping Napatech installation for AF_PACKET build"; \
     fi
