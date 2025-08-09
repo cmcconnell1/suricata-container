@@ -306,6 +306,12 @@ RUN echo "Forcing Suricata to use our custom Napatech header..." && \
     # Also check and replace in .c files
     find src/ -name "*.c" -exec sed -i 's/#include <nt\.h>/#include "\/opt\/napatech3\/include\/nt.h"/g' {} \; && \
     find src/ -name "*.c" -exec sed -i 's/#include <napatech\.h>/#include "\/opt\/napatech3\/include\/nt.h"/g' {} \; && \
+    # Verify the replacements worked
+    echo "DEBUG: Verifying sed replacements worked:" && \
+    grep -n "include.*nt\.h" src/util-napatech.h src/source-napatech.h src/runmode-napatech.h || echo "No nt.h includes found after replacement" && \
+    # Verify our custom header contains the debug marker
+    echo "DEBUG: Checking if our custom header has the debug marker:" && \
+    grep -n "LEGACY_REFACTOR_CUSTOM_HEADER_LOADED" /opt/napatech3/include/nt.h || echo "Debug marker not found in header" && \
     make -j6 && \
     make install DESTDIR=/usr/src/suricata-install && \
     make install-conf DESTDIR=/usr/src/suricata-install
