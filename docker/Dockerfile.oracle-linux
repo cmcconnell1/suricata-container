@@ -118,10 +118,16 @@ RUN yum install -y ruby ruby-devel rubygems && \
 # -----------------------------------------------------------------------------
 # NAPATECH PACKAGE INSTALLATION (using legacy albert_build_scripts approach)
 # -----------------------------------------------------------------------------
-# Copy legacy files for Napatech installation
+# Copy legacy files for Napatech installation (updated with complete API)
 COPY docker/legacy-files/installer.patch /tmp/installer.patch
 COPY docker/legacy-files/nt.h /tmp/nt.h
 COPY docker/legacy-files/ntapi_stub.c /tmp/ntapi_stub.c
+# Verify the updated files are copied correctly
+RUN echo "Verifying updated Napatech files:" && \
+    echo "nt.h size: $(wc -l /tmp/nt.h)" && \
+    echo "ntapi_stub.c size: $(wc -l /tmp/ntapi_stub.c)" && \
+    echo "Checking for key Napatech types in nt.h:" && \
+    grep -c "NtStatStream_t\|NtInfoStream_t\|NtConfigStream_t\|NT_InfoOpen\|NT_StatOpen" /tmp/nt.h || echo "Missing types found"
 
 WORKDIR /usr/src/napatech
 RUN if [ "$BUILD_VARIANT" = "napatech" ]; then \
