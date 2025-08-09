@@ -195,6 +195,13 @@ RUN if [ "$BUILD_VARIANT" = "napatech" ]; then \
         ls -la /opt/napatech3/ 2>/dev/null || echo "No /opt/napatech3 directory"; \
         ls -la /opt/napatech3/include/ 2>/dev/null || echo "No include directory"; \
         ls -la /opt/napatech3/lib/ 2>/dev/null || echo "No lib directory"; \
+        echo "DEBUG: Checking actual nt.h content used by compilation:"; \
+        if [ -f /opt/napatech3/include/nt.h ]; then \
+            echo "nt.h lines: $(wc -l /opt/napatech3/include/nt.h)"; \
+            echo "NT_STATISTICS_READ_CMD_QUERY_V2 found: $(grep -c NT_STATISTICS_READ_CMD_QUERY_V2 /opt/napatech3/include/nt.h || echo 0)"; \
+            echo "query_v2 found: $(grep -c query_v2 /opt/napatech3/include/nt.h || echo 0)"; \
+            echo "stat field found: $(grep -c 'stat;' /opt/napatech3/include/nt.h || echo 0)"; \
+        fi; \
     else \
         echo "Skipping Napatech installation for AF_PACKET build"; \
     fi
