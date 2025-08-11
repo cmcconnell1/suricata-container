@@ -302,18 +302,24 @@ The project builds **two distinct variants** to support different deployment sce
 $ docker run --rm --cap-add=NET_ADMIN --cap-add=NET_RAW --entrypoint="" suricata:7.0.11 suricata -V
 This is Suricata version 7.0.11 RELEASE
 
-# Oracle Linux Variant Test Results
-$ docker run --rm --cap-add=NET_ADMIN --cap-add=NET_RAW --entrypoint="" suricata:7.0.11-ol9-afpacket /usr/local/bin/suricata -V
+# Oracle Linux AF_PACKET Variant Test Results
+$ docker run --rm --cap-add=NET_ADMIN --cap-add=NET_RAW --entrypoint="" suricata:7.0.11-ol9-afpacket suricata -V
 This is Suricata version 7.0.11 RELEASE
 
-# Both variants have working suricata-update
-$ docker run --rm suricata:7.0.11 suricata-update --help  # Working
-$ docker run --rm suricata:7.0.11-ol9-afpacket suricata-update --help   # Working
+# Oracle Linux Napatech Variant Test Results
+$ docker run --rm --cap-add=NET_ADMIN --cap-add=NET_RAW --entrypoint="" suricata:7.0.11-ol9-napatech suricata -V
+This is Suricata version 7.0.11 RELEASE
+
+# All variants have working suricata-update
+$ docker run --rm suricata:7.0.11 suricata-update --help                    # Alpine
+$ docker run --rm suricata:7.0.11-ol9-afpacket suricata-update --help      # Oracle AF_PACKET
+$ docker run --rm suricata:7.0.11-ol9-napatech suricata-update --help      # Oracle Napatech
 
 # Container size comparison
 $ docker images | grep suricata
 suricata     7.0.11                252MB   # Alpine variant
-suricata     7.0.11-ol9-afpacket   490MB   # Oracle Linux variant
+suricata     7.0.11-ol9-afpacket   520MB   # Oracle Linux AF_PACKET variant
+suricata     7.0.11-ol9-napatech   490MB   # Oracle Linux Napatech variant
 ```
 
 ### Build Information
