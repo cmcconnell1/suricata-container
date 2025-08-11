@@ -19,7 +19,7 @@ docker run -d --name suricata-alpine \
   suricata:7.0.11
 ```
 
-### Oracle Linux Variant (520MB) - Recommended for Enterprise Deployments
+### Oracle Linux Variant (490MB) - Recommended for Enterprise Deployments
 
 Production usage (Linux):
 ```sh

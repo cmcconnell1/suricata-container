@@ -13,7 +13,7 @@ All documentation in the Suricata container project has been comprehensively upd
 ### 1. Dual-Variant Architecture Documentation
 - **Updated all references** from single Suricata 8.x to dual Suricata 7.0.11 variants
 - **Alpine Linux Variant**: 252MB ultra-lightweight container for modern deployments
-- **Oracle Linux Variant**: 520MB enterprise container with legacy compatibility (refactored from albert_build_scripts)
+- **Oracle Linux Variant**: 490MB enterprise container with legacy compatibility (refactored from albert_build_scripts)
 - **Napatech Support**: Optional hardware acceleration with Napatech 3GD drivers (v12.4.3.1)
 - **Size Optimization**: Industry-leading 75-85% reduction vs industry standards
 
@@ -24,7 +24,7 @@ All documentation in the Suricata container project has been comprehensively upd
 
 ### 3. Technical Accuracy Updates
 - **Build Results**: Updated with actual local build test results
-- **Container Sizes**: Accurate size reporting (252MB Alpine, 520MB Oracle Linux)
+- **Container Sizes**: Accurate size reporting (252MB Alpine, 490MB Oracle Linux)
 - **Feature Sets**: Current Suricata 7.0.11 capabilities and optimizations
 - **Legacy Compatibility**: Documented 57 legacy packages in Oracle Linux variant
 - **Refactored Build Process**: Documented Oracle Linux refactoring from albert_build_scripts
@@ -79,7 +79,7 @@ All documentation in the Suricata container project has been comprehensively upd
 - **Optimization**: 75% smaller than industry standards
 - **Use Case**: Modern cloud-native deployments
 
-### Oracle Linux Variant (520MB)
+### Oracle Linux Variant (490MB)
 - **Base**: Oracle Linux 9 (refactored from albert_build_scripts)
 - **Suricata**: 7.0.11 RELEASE with gcc-toolset-13
 - **Rust**: 1.76.0 with enhanced SIMD optimizations
@@ -110,12 +110,12 @@ docker run -d --name suricata-alpine \
   --cap-add=NET_ADMIN --cap-add=NET_RAW \
   suricata:7.0.11
 
-# Oracle Linux AF_PACKET variant (520MB)
+# Oracle Linux AF_PACKET variant (490MB)
 docker run -d --name suricata-enterprise \
   --cap-add=NET_ADMIN --cap-add=NET_RAW \
   suricata:7.0.11-ol9-afpacket
 
-# Oracle Linux Napatech variant (520MB)
+# Oracle Linux Napatech variant (490MB)
 docker run -d --name suricata-napatech \
   --cap-add=NET_ADMIN --cap-add=NET_RAW \
   suricata:7.0.11-ol9-napatech
@@ -131,7 +131,7 @@ docker run -d --name suricata-napatech \
 
 ### Build Validation
 - **Local Testing**: Both variants successfully built and tested
-- **Size Verification**: Confirmed 252MB Alpine, 520MB Oracle Linux
+- **Size Verification**: Confirmed 252MB Alpine, 490MB Oracle Linux
 - **Feature Validation**: All Suricata 7.0.11 features working
 - **Legacy Compatibility**: Oracle Linux variant includes all required packages
 

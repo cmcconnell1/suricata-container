@@ -11,7 +11,7 @@ This guide provides comprehensive testing and validation procedures for both Sur
 - **Target**: Modern cloud-native deployments
 - **Build**: Standard AF_PACKET support
 
-### Oracle Linux Variant (520MB)
+### Oracle Linux Variant (490MB)
 - **Base**: Oracle Linux 9 (legacy refactored from albert_build_scripts)
 - **Target**: Enterprise and legacy environments
 - **Build Variants**: AF_PACKET (standard) and Napatech (hardware acceleration)
@@ -296,7 +296,7 @@ docker run --rm -e DEBUG=1 suricata:7.0.11
 - [ ] Network capabilities are properly set
 
 ### Production Readiness
-- [ ] Container sizes meet expectations (252MB Alpine, 520MB Oracle Linux)
+- [ ] Container sizes meet expectations (252MB Alpine, 490MB Oracle Linux)
 - [ ] Performance benchmarks meet requirements
 - [ ] Security scans pass
 - [ ] Legacy compatibility verified (Oracle Linux)

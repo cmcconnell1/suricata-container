@@ -12,7 +12,7 @@
 ### **Core Success**
 - **Suricata 7.0.11** - Stable production version running perfectly on both variants
 - **Alpine Linux 3.20** - Ultra-lightweight base (252MB final image)
-- **Oracle Linux 9** - Enterprise base with legacy compatibility (520MB final image)
+- **Oracle Linux 9** - Enterprise base with legacy compatibility (490MB final image)
 - **Rust 1.76.0** - Full Rust integration for enhanced performance
 - **Modern Features** - JA3/JA4, HTTP/2, TLS analysis, comprehensive detection
 
@@ -48,7 +48,7 @@ docker run --platform linux/amd64 --rm --cap-add=NET_ADMIN --cap-add=NET_RAW --e
 This is Suricata version 7.0.11 RELEASE
 ```
 
-### Oracle Linux Variant (520MB)
+### Oracle Linux Variant (490MB)
 ```bash
 $ make test-oracle
 Building for Linux on macOS - using --platform linux/amd64
@@ -77,7 +77,7 @@ docker run -d --name suricata-alpine \
   suricata:7.0.11
 ```
 
-### Quick Start - Oracle Linux Variant (520MB)
+### Quick Start - Oracle Linux Variant (490MB)
 ```bash
 # Test the container
 make test-oracle
@@ -154,4 +154,4 @@ All documentation has been updated to reflect the successful build:
 
 **Ready for Production Use**
 - **Alpine Linux Variant**: 252MB - Recommended for modern/cloud deployments
-- **Oracle Linux Variant**: 520MB - Recommended for enterprise/legacy deployments
+- **Oracle Linux Variant**: 490MB - Recommended for enterprise/legacy deployments

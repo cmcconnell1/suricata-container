@@ -2,7 +2,7 @@
 
 ## Build Status: SUCCESS
 
-**Both container variants have been successfully built and tested!** Suricata 7.0.11 is running perfectly on both Alpine Linux (252MB) and Oracle Linux (520MB) variants with modern features including JA3/JA4 fingerprinting, HTTP/2 support, and enhanced TLS analysis.
+**Both container variants have been successfully built and tested!** Suricata 7.0.11 is running perfectly on both Alpine Linux (252MB) and Oracle Linux (490MB) variants with modern features including JA3/JA4 fingerprinting, HTTP/2 support, and enhanced TLS analysis.
 
 ## Refactored Build Process
 
@@ -53,7 +53,7 @@ The Makefile automatically detects macOS and sets the correct platform flags:
    ```sh
    make build && make test
    ```
-3. Build Oracle Linux variant (520MB):
+3. Build Oracle Linux variant (490MB):
    ```sh
    make build-oracle && make test-oracle
    ```
@@ -75,7 +75,7 @@ The Makefile automatically detects macOS and sets the correct platform flags:
    # or manually:
    docker build -t suricata:7.0.11 -f docker/Dockerfile .
    ```
-3. Build Oracle Linux variant (520MB):
+3. Build Oracle Linux variant (490MB):
    ```sh
    make build-oracle
    # or manually:

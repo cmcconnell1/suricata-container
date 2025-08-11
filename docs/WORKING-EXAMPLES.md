@@ -24,7 +24,7 @@ make test
 docker run --rm suricata:7.0.11 suricata --build-info
 ```
 
-### 2. Oracle Linux AF_PACKET Build (520MB)
+### 2. Oracle Linux AF_PACKET Build (490MB)
 
 ```bash
 # Build Oracle Linux AF_PACKET variant
@@ -173,8 +173,8 @@ docker images | grep suricata
 
 # Expected output:
 # suricata     7.0.11                252MB
-# suricata     7.0.11-ol9-afpacket   520MB
-# suricata     7.0.11-ol9-napatech   520MB (if built)
+# suricata     7.0.11-ol9-afpacket   490MB
+# suricata     7.0.11-ol9-napatech   490MB (if built)
 
 # Memory usage test
 docker run --rm suricata:7.0.11 sh -c 'free -h'

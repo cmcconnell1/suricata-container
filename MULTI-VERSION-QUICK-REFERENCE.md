@@ -7,7 +7,7 @@
 make build && make test
 ```
 
-### Build Oracle Linux Variant (520MB)
+### Build Oracle Linux Variant (490MB)
 ```bash
 make build-oracle && make test-oracle
 ```
@@ -22,7 +22,7 @@ make all
 | Variant | Size | Base OS | Usage |
 |---------|------|---------|-------|
 | **Alpine** | 252MB | Alpine Linux 3.20 | Modern/Cloud-Native |
-| **Oracle Linux** | 520MB | Oracle Linux 9 | Enterprise/Legacy |
+| **Oracle Linux** | 490MB | Oracle Linux 9 | Enterprise/Legacy |
 
 ## Docker Pull/Run
 
@@ -40,7 +40,7 @@ docker run -d --cap-add=NET_ADMIN --cap-add=NET_RAW cis-devops/suricata:7.0.11-o
 
 Successfully built images are available at:
 - **Alpine Variant**: `cis-devops/suricata:7.0.11` (252MB)
-- **Oracle Linux Variant**: `cis-devops/suricata:7.0.11-ol9-afpacket` (520MB)
+- **Oracle Linux Variant**: `cis-devops/suricata:7.0.11-ol9-afpacket` (490MB)
 - **Commit-based**: `cis-devops/suricata:<commit-hash>`
 
 ## Container Architecture
@@ -52,7 +52,7 @@ Alpine Linux Variant (252MB)
 ├── Use Case: Modern cloud-native deployments
 └── Docker: suricata:7.0.11
 
-Oracle Linux Variant (520MB)
+Oracle Linux Variant (490MB)
 ├── Base: Oracle Linux 9, Rust 1.76.0, Python 3.11
 ├── Legacy: All 57 legacy packages included
 ├── Use Case: Enterprise and legacy environments
