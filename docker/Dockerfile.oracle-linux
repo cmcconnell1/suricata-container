@@ -223,6 +223,8 @@ RUN if [ "$BUILD_VARIANT" = "napatech" ]; then \
         echo | gcc -E -Wp,-v - 2>&1 | grep "^ " | head -10 || echo "Could not get include paths"; \
     else \
         echo "Skipping Napatech installation for AF_PACKET build"; \
+        # Create empty directory structure for consistent copying
+        mkdir -p /opt/napatech3/{include,lib}; \
     fi
 
 # -----------------------------------------------------------------------------
@@ -230,19 +232,22 @@ RUN if [ "$BUILD_VARIANT" = "napatech" ]; then \
 # -----------------------------------------------------------------------------
 # This replicates the hyperscan build from legacy build_suricata_deps_ol9.yml
 WORKDIR /usr/src/hyperscan
-RUN curl -L https://github.com/intel/hyperscan/archive/v${HYPERSCAN_VERSION}.tar.gz | tar xz --strip-components=1 && \
-    # Configure with legacy cmake settings (disable problematic tools for newer compilers)
-    cmake -DBOOST_ROOT=/usr/include/boost \
+
+# Download and extract Hyperscan source (separate layer for better caching)
+RUN curl -L https://github.com/intel/hyperscan/archive/v${HYPERSCAN_VERSION}.tar.gz | tar xz --strip-components=1
+
+# Configure Hyperscan (separate layer for better caching)
+RUN cmake -DBOOST_ROOT=/usr/include/boost \
           -DCMAKE_BUILD_TYPE=Release \
           -DBUILD_STATIC_AND_SHARED=1 \
           -DCMAKE_INSTALL_PREFIX=/usr \
           -DFAT_RUNTIME=off \
           -DBUILD_TOOLS=OFF \
           -DBUILD_EXAMPLES=OFF \
-          -DBUILD_UNIT=OFF . && \
-    # Build only essential libraries (skip problematic tools and tests)
-    make -j6 hs hs_shared hs_runtime hs_runtime_shared && \
-    # Install only the libraries we built
+          -DBUILD_UNIT=OFF .
+
+# Build and install Hyperscan (optimized parallelization)
+RUN make -j$(nproc) hs hs_shared hs_runtime hs_runtime_shared && \
     make install/fast && \
     ldconfig
 
@@ -251,6 +256,8 @@ RUN curl -L https://github.com/intel/hyperscan/archive/v${HYPERSCAN_VERSION}.tar
 # -----------------------------------------------------------------------------
 # This replicates the suricata build from legacy build_suricata_ol9.yml
 WORKDIR /usr/src/suricata
+
+# Download and extract Suricata source (separate layer for better caching)
 RUN curl -L https://www.openinfosecfoundation.org/download/suricata-${SURICATA_VERSION}.tar.gz | tar xz --strip-components=1
 
 # Apply Napatech compatibility patch for Suricata source
@@ -323,9 +330,12 @@ RUN echo "Forcing Suricata to use our custom Napatech header..." && \
     # Verify our custom header contains the debug marker
     echo "DEBUG: Checking if our custom header has the debug marker:" && \
     grep -n "LEGACY_REFACTOR_CUSTOM_HEADER_LOADED" /opt/napatech3/include/nt.h || echo "Debug marker not found in header" && \
-    make -j6 && \
+    make -j$(nproc) && \
     make install DESTDIR=/usr/src/suricata-install && \
-    make install-conf DESTDIR=/usr/src/suricata-install
+    make install-conf DESTDIR=/usr/src/suricata-install && \
+    # Debug: Show the actual structure created for future selective copying optimization
+    echo "DEBUG: Suricata install structure for selective copying optimization:" && \
+    find /usr/src/suricata-install -type f | head -20
 
 # -----------------------------------------------------------------------------
 # RPM GENERATION: Create RPMs using FPM (legacy requirement)
@@ -433,16 +443,30 @@ RUN yum install -y \
     && rm -rf /tmp/* \
     && rm -rf /var/tmp/*
 
-# Copy compiled binaries and libraries from builder stage
+# Copy compiled libraries from builder stage (selective copying for optimization)
 COPY --from=builder /usr/lib64/libhs* /usr/lib64/
 COPY --from=builder /usr/include/hs/ /usr/include/hs/
+
+# Copy Suricata installation (revert to bulk copy for now - paths need verification)
+# TODO: Optimize with selective copying once we verify the exact install structure
 COPY --from=builder /usr/src/suricata-install/ /
+
+# Copy Napatech libraries and headers (directory always exists, may be empty for AF_PACKET)
+COPY --from=builder /opt/napatech3/ /opt/napatech3/
 
 # Copy RPMs for distribution (optional - can be disabled for smaller images)
 # COPY --from=builder /usr/src/rpms/*.rpm /opt/rpms/
 
 # Install suricata-update
 RUN pip3 install suricata-update
+
+# Configure Napatech library path if libraries exist
+RUN if [ -d "/opt/napatech3/lib" ]; then \
+        echo "Configuring Napatech library path..."; \
+        echo "/opt/napatech3/lib" > /etc/ld.so.conf.d/napatech.conf && \
+        ldconfig && \
+        echo "Napatech libraries configured successfully"; \
+    fi
 
 # Create required directories
 RUN mkdir -p /var/log/suricata /var/run/suricata /etc/suricata/rules
