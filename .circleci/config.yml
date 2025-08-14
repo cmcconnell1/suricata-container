@@ -160,13 +160,13 @@ jobs:
       - run:
           name: Save Docker image
           command: |
-            # Save image for workspace (used by subsequent jobs)
-            docker save suricata:latest -o suricata.tar
+            # Save image for workspace (used by subsequent jobs) with variant-specific filename
+            docker save suricata:latest -o suricata-<< parameters.build-variant >>.tar
 
             # TEMPORARY: Create compressed version for CircleCI artifacts
             # TODO: Remove this once ECR integration is fully stable and artifact storage is no longer needed
             echo "Creating compressed artifact for CircleCI storage..."
-            gzip -c suricata.tar > suricata-<< parameters.suricata-version >>-oracle<< parameters.oracle-version >>.tar.gz
+            gzip -c suricata-<< parameters.build-variant >>.tar > suricata-<< parameters.suricata-version >>-oracle<< parameters.oracle-version >>.tar.gz
 
             # Create metadata file for artifact
             echo "Suricata Version: << parameters.suricata-version >>" > container-metadata.txt
@@ -179,7 +179,7 @@ jobs:
       - persist_to_workspace:
           root: .
           paths:
-            - suricata.tar
+            - suricata-<< parameters.build-variant >>.tar
 
       # TEMPORARY: Store container image as CircleCI artifact
       # TODO: Remove this step once ECR integration is fully stable
@@ -393,6 +393,9 @@ jobs:
 
   scan:
     executor: suricata-builder
+    parameters:
+      build-variant:
+        type: string
     steps:
       - attach_workspace:
           at: .
@@ -403,7 +406,7 @@ jobs:
       # Load image from workspace
       - run:
           name: Load image
-          command: docker load -i suricata.tar
+          command: docker load -i suricata-<< parameters.build-variant >>.tar
 
       # Install and run Trivy security scan
       - run:
@@ -453,6 +456,8 @@ jobs:
         type: string
       suricata-version:
         type: string
+      build-variant:
+        type: string
     steps:
       - checkout
       - attach_workspace:
@@ -468,7 +473,7 @@ jobs:
       # Load image from workspace
       - run:
           name: Load image
-          command: docker load -i suricata.tar
+          command: docker load -i suricata-<< parameters.build-variant >>.tar
 
       # Login to ECR using temporary credentials
       - run:
@@ -663,7 +668,7 @@ jobs:
       # Load image from workspace
       - run:
           name: Load image
-          command: docker load -i suricata.tar
+          command: docker load -i suricata-<< parameters.build-variant >>.tar
 
       # Create comprehensive artifact package
       - run:
@@ -810,6 +815,7 @@ workflows:
       # SCAN: Napatech variant (primary) - requires both build and Checkmarx scan
       - scan:
           name: "scan-7x-main-napatech"
+          build-variant: "napatech"
           requires:
             - "build-7x-main-napatech"
             - "checkmarx-scan-7x-main"
@@ -819,6 +825,7 @@ workflows:
       # SCAN: AF_PACKET variant (secondary) - requires both build and Checkmarx scan
       - scan:
           name: "scan-7x-main-afpacket"
+          build-variant: "afpacket"
           requires:
             - "build-7x-main-afpacket"
             - "checkmarx-scan-7x-main"
@@ -839,6 +846,7 @@ workflows:
           name: "push-7x-main-napatech"
           image-tag: "v7.0.11-main-napatech"
           suricata-version: "7.0.11"
+          build-variant: "napatech"
           requires:
             - "build-7x-main-napatech"
             - "security-gate-7x-main"
@@ -850,6 +858,7 @@ workflows:
           name: "push-7x-main-afpacket"
           image-tag: "v7.0.11-main-afpacket"
           suricata-version: "7.0.11"
+          build-variant: "afpacket"
           requires:
             - "build-7x-main-afpacket"
             - "security-gate-7x-main"
@@ -903,6 +912,7 @@ workflows:
               only: suricata-8.x
       - scan:
           name: "scan-8x"
+          build-variant: "afpacket"
           requires:
             - "build-8x"
             - "checkmarx-scan-8x"
@@ -921,6 +931,7 @@ workflows:
           name: "push-8x"
           image-tag: "v8.0.0-latest"
           suricata-version: "8.0.0"
+          build-variant: "afpacket"
           requires:
             - "build-8x"
             - "security-gate-8x"
