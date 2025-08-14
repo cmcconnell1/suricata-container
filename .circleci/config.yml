@@ -230,8 +230,16 @@ jobs:
             echo "Scan response received:"
             echo "${SCAN_RESPONSE}"
 
-            # Extract scan ID from response
-            SCAN_ID=$(echo "${SCAN_RESPONSE}" | sed 's/.*"ID":"//;s/",".*//')
+            # Extract scan ID from response - get the JSON line and parse it
+            SCAN_ID=$(echo "${SCAN_RESPONSE}" | grep -E '^\{.*"ID":' | sed 's/.*"ID":"//;s/",".*//')
+
+            if [ -z "$SCAN_ID" ]; then
+              echo "Failed to extract scan ID from response. Looking for JSON in output..."
+              echo "Full response:"
+              echo "${SCAN_RESPONSE}"
+              exit 1
+            fi
+
             echo "Scan ID: ${SCAN_ID}"
 
             # Save scan information for artifacts
