@@ -178,17 +178,28 @@ docker run --rm --cap-add=NET_ADMIN --cap-add=NET_RAW \
 workflows:
   build_scan_deploy_7x:
     jobs:
-      - build
-      - scan:          # Mandatory security gate
-          requires: [build]
-      - push:
-          requires: [scan]  # Cannot deploy without security validation
+      - build-napatech
+      - build-afpacket
+      - scan-napatech:     # Mandatory security gate
+          requires: [build-napatech, checkmarx-scan]
+      - scan-afpacket:     # Mandatory security gate
+          requires: [build-afpacket, checkmarx-scan]
+      - security-gate:     # Combined security evaluation
+          requires: [scan-napatech, scan-afpacket]
+      - push-to-ecr:       # Deployment only after security validation
+          requires: [build-variant, security-gate]
 ```
 
+**Workflow Isolation Benefits:**
+- **Build Isolation:** Each job runs in clean environment
+- **Dependency Control:** Explicit job dependencies prevent bypassing security
+- **Artifact Isolation:** Workspace persistence ensures clean artifact flow with variant-specific images
+- **Variant Separation:** Each build variant maintains separate workspace artifacts to prevent conflicts
+- **Security Gates:** Combined security evaluation from all variants before deployment
+
 **Branch Isolation:**
-- **main branch:** Production security standards
-- **suricata-8.x:** Latest features with same security
-- **suricata-7.x:** Legacy support with consistent security
+- **main branch:** Production security standards with dual-variant builds
+- **suricata-8.x:** Latest features with same security standards
 
 ### Audit Trail and Compliance
 

@@ -5,6 +5,20 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.1.1] - 2025-08-14
+
+### Fixed
+- **CircleCI Workspace Conflicts**: Resolved "Concurrent upstream jobs persisted the same file(s) into the workspace" error
+  - Removed `suricata.tar` from scan job workspace persistence (scan jobs don't modify the image)
+  - Removed `suricata.tar` from security-gate job workspace persistence (security-gate only evaluates results)
+  - Updated deployment job dependencies to get `suricata.tar` directly from build jobs
+  - Added proper workspace isolation between Napatech and AF_PACKET variants
+- **Documentation Updates**: Updated workflow diagrams and descriptions to reflect workspace isolation changes
+
+### Changed
+- **Workflow Dependencies**: ECR push and artifacts jobs now depend on both their specific build job AND security-gate
+- **Workspace Management**: Improved artifact flow to prevent conflicts between parallel build variants
+
 ## [2.1.0] - 2025-08-11
 
 ### MAJOR ACHIEVEMENT: Napatech Validation Complete

@@ -620,17 +620,19 @@ Each commit to the main branch triggers **parallel builds** of both variants:
 
 ```
 build_scan_deploy_7x workflow:
+├── checkmarx-scan-7x-main (SAST - parallel)
 ├── build-7x-main-napatech (PRIMARY)
-│   ├── scan-7x-main-napatech
-│   ├── push-7x-main-napatech → ECR: v7.0.11-main-napatech
-│   └── artifacts-7x-main-napatech
-└── build-7x-main-afpacket (SECONDARY)
-    ├── scan-7x-main-afpacket
+│   └── scan-7x-main-napatech (requires: build + checkmarx)
+├── build-7x-main-afpacket (SECONDARY)
+│   └── scan-7x-main-afpacket (requires: build + checkmarx)
+└── security-gate-7x-main (requires: both scans)
+    ├── push-7x-main-napatech → ECR: v7.0.11-main-napatech
     ├── push-7x-main-afpacket → ECR: v7.0.11-main-afpacket
+    ├── artifacts-7x-main-napatech
     └── artifacts-7x-main-afpacket
 ```
 
-**CircleCI Workflow Visualization**: The pipeline shows both variants building in parallel, with the Napatech variant as the primary build (matching legacy albert_build_scripts behavior) and AF_PACKET as the secondary modern alternative.
+**CircleCI Workflow Visualization**: The pipeline shows both variants building in parallel, with the Napatech variant as the primary build (matching legacy albert_build_scripts behavior) and AF_PACKET as the secondary modern alternative. The workflow includes workspace isolation to prevent conflicts between variant-specific Docker images.
 
 ![CircleCI Dual Build Workflow](docs/images/circleci-dual-build-workflow.png)
 
@@ -646,10 +648,12 @@ build_scan_deploy_7x workflow:
 ### Pipeline Features
 
 - **Multi-Version Support**: Automatic version detection based on branch
+- **Dual-Variant Builds**: Parallel builds for Napatech and AF_PACKET variants with workspace isolation
 - **AWS ECR Deployment**: Images pushed to `339712848218.dkr.ecr.us-east-1.amazonaws.com/ecoe/pe/engineering/suricata`
 - **Temporary Credentials**: Uses IAM role assumption for secure AWS access
 - **Multiple Tags**: Version-specific, branch-specific, and commit-specific tags
 - **Security Scanning**: Trivy vulnerability scanning with CRITICAL exit codes
+- **Workspace Isolation**: Prevents conflicts between variant-specific Docker images
 - **Zero Long-term Secrets**: No AWS keys stored in CircleCI
 
 ### Security Architecture

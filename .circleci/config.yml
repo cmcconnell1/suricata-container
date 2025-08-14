@@ -386,7 +386,6 @@ jobs:
           root: .
           paths:
             - security-gate-summary.json
-            - suricata.tar
             - checkmarx-scan-response.json
             - checkmarx-scan-results.json
             - checkmarx-scan-results.txt
@@ -430,7 +429,8 @@ jobs:
       - persist_to_workspace:
           root: .
           paths:
-            - suricata.tar
+            - trivy-scan-report.json
+            - trivy-scan-report.txt
             - checkmarx-scan-response.json
             - checkmarx-scan-results.json
             - checkmarx-scan-results.txt
@@ -840,6 +840,7 @@ workflows:
           image-tag: "v7.0.11-main-napatech"
           suricata-version: "7.0.11"
           requires:
+            - "build-7x-main-napatech"
             - "security-gate-7x-main"
           filters:
             branches:
@@ -850,6 +851,7 @@ workflows:
           image-tag: "v7.0.11-main-afpacket"
           suricata-version: "7.0.11"
           requires:
+            - "build-7x-main-afpacket"
             - "security-gate-7x-main"
           filters:
             branches:
@@ -862,6 +864,7 @@ workflows:
           build-variant: "napatech"
           image-tag: "v7.0.11-main-napatech"
           requires:
+            - "build-7x-main-napatech"
             - "security-gate-7x-main"
           filters:
             branches:
@@ -874,6 +877,7 @@ workflows:
           build-variant: "afpacket"
           image-tag: "v7.0.11-main-afpacket"
           requires:
+            - "build-7x-main-afpacket"
             - "security-gate-7x-main"
           filters:
             branches:
@@ -918,6 +922,7 @@ workflows:
           image-tag: "v8.0.0-latest"
           suricata-version: "8.0.0"
           requires:
+            - "build-8x"
             - "security-gate-8x"
           filters:
             branches:
@@ -930,6 +935,7 @@ workflows:
           build-variant: "afpacket"
           image-tag: "v8.0.0-latest"
           requires:
+            - "build-8x"
             - "security-gate-8x"
           filters:
             branches:

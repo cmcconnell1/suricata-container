@@ -9,30 +9,37 @@ This document describes the integration of Checkmarx SAST (Static Application Se
 ### Pipeline Flow
 ```
 ┌─────────────┐    ┌─────────────┐
-│    build    │    │checkmarx-scan│
+│build-napatech│    │checkmarx-scan│
 └─────┬───────┘    └─────┬───────┘
+      │                  │
+┌─────────────┐          │
+│build-afpacket│          │
+└─────┬───────┘          │
       │                  │
       └─────┬────────────┘
             ▼
-    ┌─────────────┐
-    │    scan     │ (Trivy)
-    └─────┬───────┘
-            ▼
-    ┌─────────────┐
-    │security-gate│
-    └─────┬───────┘
-            ▼
-    ┌─────────────┐
-    │push-to-ecr  │
-    └─────────────┘
+    ┌─────────────┐    ┌─────────────┐
+    │scan-napatech│    │scan-afpacket│
+    └─────┬───────┘    └─────┬───────┘
+          │                  │
+          └─────┬────────────┘
+                ▼
+        ┌─────────────┐
+        │security-gate│
+        └─────┬───────┘
+              ▼
+        ┌─────────────┐
+        │push-to-ecr  │
+        └─────────────┘
 ```
 
 ### Key Features
 
-1. **Parallel Execution**: Checkmarx SAST scanning runs in parallel with container builds for efficiency
+1. **Parallel Execution**: Checkmarx SAST scanning runs in parallel with dual-variant container builds for efficiency
 2. **Early Security Feedback**: Source code security issues are identified before container deployment
-3. **Combined Security Gate**: Both Trivy and Checkmarx results are evaluated before deployment
+3. **Combined Security Gate**: Both Trivy (from both variants) and Checkmarx results are evaluated before deployment
 4. **Comprehensive Reporting**: All security scan results are stored as CircleCI artifacts
+5. **Workspace Isolation**: Each build variant maintains separate workspace artifacts to prevent conflicts
 
 ## Environment Variables
 
