@@ -357,7 +357,7 @@ jobs:
             fi
 
             # Generate combined security summary
-            cat > security-gate-summary.json << EOF
+            cat > security-gate-summary.json \<< EOF
             {
               "security_gate_status": "${SECURITY_PASSED}",
               "trivy_critical_vulnerabilities": ${CRITICAL_VULNS:-0},
