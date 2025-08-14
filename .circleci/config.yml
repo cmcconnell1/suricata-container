@@ -191,6 +191,200 @@ jobs:
           path: container-metadata.txt
           destination: containers/container-metadata.txt
 
+  checkmarx-scan:
+    executor: suricata-builder
+    steps:
+      - checkout
+
+      # Install Checkmarx CLI
+      - run:
+          name: Install Checkmarx CLI
+          command: |
+            echo "Installing Checkmarx CLI version ${CX_VERSION}..."
+            wget -O ./cxcli.tar.gz "https://github.com/Checkmarx/ast-cli/releases/download/${CX_VERSION}/ast-cli_${CX_VERSION}_linux_x64.tar.gz"
+            tar xzvf ./cxcli.tar.gz
+            chmod +x cx
+            ./cx version
+            echo "Checkmarx CLI installed successfully"
+
+      # Run Checkmarx SAST scan
+      - run:
+          name: Run Checkmarx SAST scan
+          command: |
+            echo "Starting Checkmarx SAST scan..."
+            echo "Project: ${CX_PROJECT_NAME}"
+            echo "Branch: ${CIRCLE_BRANCH}"
+            echo "Tenant: ${CX_TENANT}"
+
+            # Execute scan and capture response
+            SCAN_RESPONSE=$(./cx scan create \
+              --project-name "${CX_PROJECT_NAME}" \
+              --file-source "." \
+              --branch "${CIRCLE_BRANCH}" \
+              --base-uri "${CX_BASE_URI}" \
+              --tenant "${CX_TENANT}" \
+              --client-id "${CX_CLIENT_ID}" \
+              --client-secret "${CX_CLIENT_SECRET}" \
+              --scan-info-format "json" \
+              --verbose)
+
+            echo "Scan response received:"
+            echo "${SCAN_RESPONSE}"
+
+            # Extract scan ID from response
+            SCAN_ID=$(echo "${SCAN_RESPONSE}" | sed 's/.*"ID":"//;s/",".*//')
+            echo "Scan ID: ${SCAN_ID}"
+
+            # Save scan information for artifacts
+            echo "${SCAN_RESPONSE}" > checkmarx-scan-response.json
+            echo "${SCAN_ID}" > checkmarx-scan-id.txt
+
+            # Wait for scan completion and get results
+            echo "Waiting for scan completion..."
+            ./cx scan show --scan-id "${SCAN_ID}" \
+              --base-uri "${CX_BASE_URI}" \
+              --tenant "${CX_TENANT}" \
+              --client-id "${CX_CLIENT_ID}" \
+              --client-secret "${CX_CLIENT_SECRET}" \
+              --format json > checkmarx-scan-results.json
+
+            # Generate human-readable report
+            ./cx scan show --scan-id "${SCAN_ID}" \
+              --base-uri "${CX_BASE_URI}" \
+              --tenant "${CX_TENANT}" \
+              --client-id "${CX_CLIENT_ID}" \
+              --client-secret "${CX_CLIENT_SECRET}" \
+              --format table > checkmarx-scan-results.txt
+
+            echo "Checkmarx SAST scan completed successfully"
+
+      # Store Checkmarx scan results
+      - store_artifacts:
+          path: checkmarx-scan-response.json
+          destination: security/checkmarx-scan-response.json
+
+      - store_artifacts:
+          path: checkmarx-scan-results.json
+          destination: security/checkmarx-scan-results.json
+
+      - store_artifacts:
+          path: checkmarx-scan-results.txt
+          destination: security/checkmarx-scan-results.txt
+
+      - store_artifacts:
+          path: checkmarx-scan-id.txt
+          destination: security/checkmarx-scan-id.txt
+
+      # Persist scan results for potential use in other jobs
+      - persist_to_workspace:
+          root: .
+          paths:
+            - checkmarx-scan-response.json
+            - checkmarx-scan-results.json
+            - checkmarx-scan-results.txt
+            - checkmarx-scan-id.txt
+
+  security-gate:
+    executor: suricata-builder
+    steps:
+      - attach_workspace:
+          at: .
+
+      # Evaluate combined security results
+      - run:
+          name: Evaluate security scan results
+          command: |
+            echo "=== SECURITY GATE EVALUATION ==="
+            echo "Evaluating combined security scan results from Trivy and Checkmarx..."
+
+            SECURITY_PASSED=true
+
+            # Check Trivy results
+            echo "--- Trivy Container Scan Results ---"
+            if [ -f "trivy-scan-report.json" ]; then
+              echo "Trivy scan report found"
+              # Check for critical vulnerabilities in Trivy report
+              CRITICAL_VULNS=$(jq -r '.Results[]?.Vulnerabilities[]? | select(.Severity == "CRITICAL") | .VulnerabilityID' trivy-scan-report.json 2>/dev/null | wc -l || echo "0")
+              echo "Critical vulnerabilities found: ${CRITICAL_VULNS}"
+              if [ "${CRITICAL_VULNS}" -gt 0 ]; then
+                echo "❌ TRIVY: Critical vulnerabilities detected"
+                SECURITY_PASSED=false
+              else
+                echo "✅ TRIVY: No critical vulnerabilities detected"
+              fi
+            else
+              echo "⚠️  TRIVY: Scan report not found"
+              SECURITY_PASSED=false
+            fi
+
+            # Check Checkmarx results
+            echo "--- Checkmarx SAST Scan Results ---"
+            if [ -f "checkmarx-scan-results.json" ]; then
+              echo "Checkmarx scan results found"
+              # Extract scan status and summary
+              SCAN_STATUS=$(jq -r '.Status // "UNKNOWN"' checkmarx-scan-results.json 2>/dev/null || echo "UNKNOWN")
+              echo "Checkmarx scan status: ${SCAN_STATUS}"
+
+              # Check for high/critical severity findings
+              HIGH_FINDINGS=$(jq -r '.Results[]?.Severity | select(. == "HIGH" or . == "CRITICAL")' checkmarx-scan-results.json 2>/dev/null | wc -l || echo "0")
+              echo "High/Critical severity findings: ${HIGH_FINDINGS}"
+
+              if [ "${SCAN_STATUS}" = "Completed" ] || [ "${SCAN_STATUS}" = "COMPLETED" ]; then
+                if [ "${HIGH_FINDINGS}" -gt 0 ]; then
+                  echo "⚠️  CHECKMARX: High/Critical severity findings detected"
+                  echo "Note: Checkmarx findings require manual review but do not block deployment"
+                else
+                  echo "✅ CHECKMARX: No high/critical severity findings detected"
+                fi
+              else
+                echo "⚠️  CHECKMARX: Scan did not complete successfully (Status: ${SCAN_STATUS})"
+                echo "Note: Checkmarx scan issues do not block deployment but should be investigated"
+              fi
+            else
+              echo "⚠️  CHECKMARX: Scan results not found"
+              echo "Note: Missing Checkmarx results do not block deployment but should be investigated"
+            fi
+
+            # Final security gate decision
+            echo "--- Security Gate Decision ---"
+            if [ "${SECURITY_PASSED}" = "true" ]; then
+              echo "✅ SECURITY GATE PASSED: Deployment approved"
+              echo "All critical security checks have passed"
+            else
+              echo "❌ SECURITY GATE FAILED: Deployment blocked"
+              echo "Critical security issues must be resolved before deployment"
+              exit 1
+            fi
+
+            # Generate combined security summary
+            cat > security-gate-summary.json << EOF
+            {
+              "security_gate_status": "${SECURITY_PASSED}",
+              "trivy_critical_vulnerabilities": ${CRITICAL_VULNS:-0},
+              "checkmarx_scan_status": "${SCAN_STATUS:-UNKNOWN}",
+              "checkmarx_high_critical_findings": ${HIGH_FINDINGS:-0},
+              "evaluation_timestamp": "$(date -u +%Y-%m-%dT%H:%M:%SZ)",
+              "git_commit": "${CIRCLE_SHA1}",
+              "git_branch": "${CIRCLE_BRANCH}"
+            }
+            EOF
+
+      # Store security gate results
+      - store_artifacts:
+          path: security-gate-summary.json
+          destination: security/security-gate-summary.json
+
+      # Persist security gate results for deployment jobs
+      - persist_to_workspace:
+          root: .
+          paths:
+            - security-gate-summary.json
+            - suricata.tar
+            - checkmarx-scan-response.json
+            - checkmarx-scan-results.json
+            - checkmarx-scan-results.txt
+            - checkmarx-scan-id.txt
+
   scan:
     executor: suricata-builder
     steps:
@@ -230,6 +424,10 @@ jobs:
           root: .
           paths:
             - suricata.tar
+            - checkmarx-scan-response.json
+            - checkmarx-scan-results.json
+            - checkmarx-scan-results.txt
+            - checkmarx-scan-id.txt
 
       # TEMPORARY: Store security scan reports as CircleCI artifacts
       # TODO: Remove this step once ECR integration is fully stable
@@ -474,7 +672,7 @@ jobs:
               cp suricata-<< parameters.suricata-version >>-ol<< parameters.oracle-version >>-<< parameters.build-variant >>.tar.gz artifacts/containers/
             fi
 
-            # Copy security reports
+            # Copy security reports (Trivy)
             if [ -f "trivy-scan-report.json" ]; then
               cp trivy-scan-report.json artifacts/security/
             fi
@@ -482,9 +680,28 @@ jobs:
               cp trivy-scan-report.txt artifacts/security/
             fi
 
+            # Copy security reports (Checkmarx)
+            if [ -f "checkmarx-scan-response.json" ]; then
+              cp checkmarx-scan-response.json artifacts/security/
+            fi
+            if [ -f "checkmarx-scan-results.json" ]; then
+              cp checkmarx-scan-results.json artifacts/security/
+            fi
+            if [ -f "checkmarx-scan-results.txt" ]; then
+              cp checkmarx-scan-results.txt artifacts/security/
+            fi
+            if [ -f "checkmarx-scan-id.txt" ]; then
+              cp checkmarx-scan-id.txt artifacts/security/
+            fi
+
             # Copy deployment manifest
             if [ -f "deployment-manifest.json" ]; then
               cp deployment-manifest.json artifacts/deployment/
+            fi
+
+            # Copy security gate summary
+            if [ -f "security-gate-summary.json" ]; then
+              cp security-gate-summary.json artifacts/security/
             fi
 
             # Create comprehensive metadata
@@ -501,8 +718,18 @@ jobs:
             - **Image Tag**: << parameters.image-tag >>
 
             ## Security Reports
+            ### Trivy Container Scanning
             - **JSON Report**: security/trivy-scan-report.json
             - **Text Report**: security/trivy-scan-report.txt
+
+            ### Checkmarx SAST Scanning
+            - **Scan Response**: security/checkmarx-scan-response.json
+            - **Scan Results JSON**: security/checkmarx-scan-results.json
+            - **Scan Results Text**: security/checkmarx-scan-results.txt
+            - **Scan ID**: security/checkmarx-scan-id.txt
+
+            ### Combined Security Gate
+            - **Security Gate Summary**: security/security-gate-summary.json
 
             ## Deployment Information
             - **Manifest**: deployment/deployment-manifest.json
@@ -547,6 +774,12 @@ workflows:
   # SECONDARY: AF_PACKET variant (modern software-based alternative)
   build_scan_deploy_7x:
     jobs:
+      # CHECKMARX SAST SCAN: Run in parallel with builds for early security feedback
+      - checkmarx-scan:
+          name: "checkmarx-scan-7x-main"
+          filters:
+            branches:
+              only: main
       # PRIMARY BUILD: Napatech variant (hardware-accelerated, legacy compatible)
       - build:
           name: "build-7x-main-napatech"
@@ -567,19 +800,30 @@ workflows:
           filters:
             branches:
               only: main
-      # SCAN: Napatech variant (primary)
+      # SCAN: Napatech variant (primary) - requires both build and Checkmarx scan
       - scan:
           name: "scan-7x-main-napatech"
           requires:
             - "build-7x-main-napatech"
+            - "checkmarx-scan-7x-main"
           filters:
             branches:
               only: main
-      # SCAN: AF_PACKET variant (secondary)
+      # SCAN: AF_PACKET variant (secondary) - requires both build and Checkmarx scan
       - scan:
           name: "scan-7x-main-afpacket"
           requires:
             - "build-7x-main-afpacket"
+            - "checkmarx-scan-7x-main"
+          filters:
+            branches:
+              only: main
+      # SECURITY GATE: Combined evaluation of all security scans
+      - security-gate:
+          name: "security-gate-7x-main"
+          requires:
+            - "scan-7x-main-napatech"
+            - "scan-7x-main-afpacket"
           filters:
             branches:
               only: main
@@ -589,7 +833,7 @@ workflows:
           image-tag: "v7.0.11-main-napatech"
           suricata-version: "7.0.11"
           requires:
-            - "scan-7x-main-napatech"
+            - "security-gate-7x-main"
           filters:
             branches:
               only: main
@@ -599,7 +843,7 @@ workflows:
           image-tag: "v7.0.11-main-afpacket"
           suricata-version: "7.0.11"
           requires:
-            - "scan-7x-main-afpacket"
+            - "security-gate-7x-main"
           filters:
             branches:
               only: main
@@ -611,7 +855,7 @@ workflows:
           build-variant: "napatech"
           image-tag: "v7.0.11-main-napatech"
           requires:
-            - "scan-7x-main-napatech"
+            - "security-gate-7x-main"
           filters:
             branches:
               only: main
@@ -623,7 +867,7 @@ workflows:
           build-variant: "afpacket"
           image-tag: "v7.0.11-main-afpacket"
           requires:
-            - "scan-7x-main-afpacket"
+            - "security-gate-7x-main"
           filters:
             branches:
               only: main
@@ -631,6 +875,12 @@ workflows:
   # Workflow for Suricata 8.x Oracle Linux (suricata-8.x branch - latest features)
   build_scan_deploy_8x:
     jobs:
+      # CHECKMARX SAST SCAN: Run in parallel with build for early security feedback
+      - checkmarx-scan:
+          name: "checkmarx-scan-8x"
+          filters:
+            branches:
+              only: suricata-8.x
       - build:
           name: "build-8x"
           suricata-version: "8.0.0"
@@ -644,6 +894,15 @@ workflows:
           name: "scan-8x"
           requires:
             - "build-8x"
+            - "checkmarx-scan-8x"
+          filters:
+            branches:
+              only: suricata-8.x
+      # SECURITY GATE: Combined evaluation of all security scans
+      - security-gate:
+          name: "security-gate-8x"
+          requires:
+            - "scan-8x"
           filters:
             branches:
               only: suricata-8.x
@@ -652,7 +911,7 @@ workflows:
           image-tag: "v8.0.0-latest"
           suricata-version: "8.0.0"
           requires:
-            - "scan-8x"
+            - "security-gate-8x"
           filters:
             branches:
               only: suricata-8.x
@@ -664,7 +923,7 @@ workflows:
           build-variant: "afpacket"
           image-tag: "v8.0.0-latest"
           requires:
-            - "scan-8x"
+            - "security-gate-8x"
           filters:
             branches:
               only: suricata-8.x
