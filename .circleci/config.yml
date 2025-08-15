@@ -304,14 +304,15 @@ jobs:
 
       # Evaluate combined security results
       - run:
-          name: Evaluate security scan results
+          name: Initialize security evaluation
           command: |
             echo "=== SECURITY GATE EVALUATION ==="
             echo "Evaluating combined security scan results from Trivy and Checkmarx..."
+            echo "true" > /tmp/security_passed
 
-            SECURITY_PASSED=true
-
-            # Check Trivy results for all build variants
+      - run:
+          name: Check Trivy scan results
+          command: |
             echo "--- Trivy Container Scan Results ---"
             VARIANTS="<< parameters.build-variants >>"
             IFS=',' read -ra VARIANT_ARRAY <<< "$VARIANTS"
@@ -322,30 +323,28 @@ jobs:
 
               if [ -f "trivy-scan-report-${variant}.json" ]; then
                 echo "Trivy scan report found for $variant"
-                # Check for critical vulnerabilities in Trivy report
                 CRITICAL_VULNS=$(jq -r '.Results[]?.Vulnerabilities[]? | select(.Severity == "CRITICAL") | .VulnerabilityID' "trivy-scan-report-${variant}.json" 2>/dev/null | wc -l || echo "0")
                 echo "Critical vulnerabilities found in $variant: ${CRITICAL_VULNS}"
                 if [ "${CRITICAL_VULNS}" -gt 0 ]; then
                   echo "❌ TRIVY ($variant): Critical vulnerabilities detected"
-                  SECURITY_PASSED=false
+                  echo "false" > /tmp/security_passed
                 else
                   echo "✅ TRIVY ($variant): No critical vulnerabilities detected"
                 fi
               else
                 echo "⚠️  TRIVY ($variant): Scan report not found"
-                SECURITY_PASSED=false
+                echo "false" > /tmp/security_passed
               fi
             done
 
-            # Check Checkmarx results
+      - run:
+          name: Check Checkmarx scan results
+          command: |
             echo "--- Checkmarx SAST Scan Results ---"
             if [ -f "checkmarx-scan-results.json" ]; then
               echo "Checkmarx scan results found"
-              # Extract scan status and summary
               SCAN_STATUS=$(jq -r '.Status // "UNKNOWN"' checkmarx-scan-results.json 2>/dev/null || echo "UNKNOWN")
               echo "Checkmarx scan status: ${SCAN_STATUS}"
-
-              # Check for high/critical severity findings
               HIGH_FINDINGS=$(jq -r '.Results[]?.Severity | select(. == "HIGH" or . == "CRITICAL")' checkmarx-scan-results.json 2>/dev/null | wc -l || echo "0")
               echo "High/Critical severity findings: ${HIGH_FINDINGS}"
 
@@ -365,7 +364,10 @@ jobs:
               echo "Note: Missing Checkmarx results do not block deployment but should be investigated"
             fi
 
-            # Final security gate decision
+      - run:
+          name: Make security gate decision
+          command: |
+            SECURITY_PASSED=$(cat /tmp/security_passed)
             echo "--- Security Gate Decision ---"
             if [ "${SECURITY_PASSED}" = "true" ]; then
               echo "✅ SECURITY GATE PASSED: Deployment approved"
@@ -376,13 +378,38 @@ jobs:
               exit 1
             fi
 
-            # Generate combined security summary
-            cat > security-gate-summary.json \<< EOF
+      - run:
+          name: Generate security summary
+          command: |
+            SECURITY_PASSED=$(cat /tmp/security_passed)
+            # Get latest values from scan results
+            CRITICAL_VULNS=0
+            SCAN_STATUS="UNKNOWN"
+            HIGH_FINDINGS=0
+
+            # Count critical vulns from all variants
+            VARIANTS="<< parameters.build-variants >>"
+            IFS=',' read -ra VARIANT_ARRAY <<< "$VARIANTS"
+            for variant in "${VARIANT_ARRAY[@]}"; do
+              variant=$(echo "$variant" | xargs)
+              if [ -f "trivy-scan-report-${variant}.json" ]; then
+                VARIANT_VULNS=$(jq -r '.Results[]?.Vulnerabilities[]? | select(.Severity == "CRITICAL") | .VulnerabilityID' "trivy-scan-report-${variant}.json" 2>/dev/null | wc -l || echo "0")
+                CRITICAL_VULNS=$((CRITICAL_VULNS + VARIANT_VULNS))
+              fi
+            done
+
+            # Get Checkmarx status
+            if [ -f "checkmarx-scan-results.json" ]; then
+              SCAN_STATUS=$(jq -r '.Status // "UNKNOWN"' checkmarx-scan-results.json 2>/dev/null || echo "UNKNOWN")
+              HIGH_FINDINGS=$(jq -r '.Results[]?.Severity | select(. == "HIGH" or . == "CRITICAL")' checkmarx-scan-results.json 2>/dev/null | wc -l || echo "0")
+            fi
+
+            cat > security-gate-summary.json << EOF
             {
               "security_gate_status": "${SECURITY_PASSED}",
-              "trivy_critical_vulnerabilities": ${CRITICAL_VULNS:-0},
-              "checkmarx_scan_status": "${SCAN_STATUS:-UNKNOWN}",
-              "checkmarx_high_critical_findings": ${HIGH_FINDINGS:-0},
+              "trivy_critical_vulnerabilities": ${CRITICAL_VULNS},
+              "checkmarx_scan_status": "${SCAN_STATUS}",
+              "checkmarx_high_critical_findings": ${HIGH_FINDINGS},
               "evaluation_timestamp": "$(date -u +%Y-%m-%dT%H:%M:%SZ)",
               "git_commit": "${CIRCLE_SHA1}",
               "git_branch": "${CIRCLE_BRANCH}"
