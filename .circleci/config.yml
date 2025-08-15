@@ -474,10 +474,6 @@ jobs:
           paths:
             - trivy-scan-report-<< parameters.build-variant >>.json
             - trivy-scan-report-<< parameters.build-variant >>.txt
-            - checkmarx-scan-response.json
-            - checkmarx-scan-results.json
-            - checkmarx-scan-results.txt
-            - checkmarx-scan-id.txt
 
       # TEMPORARY: Store security scan reports as CircleCI artifacts
       # TODO: Remove this step once ECR integration is fully stable
