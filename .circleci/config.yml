@@ -166,7 +166,7 @@ jobs:
             # TEMPORARY: Create compressed version for CircleCI artifacts
             # TODO: Remove this once ECR integration is fully stable and artifact storage is no longer needed
             echo "Creating compressed artifact for CircleCI storage..."
-            gzip -c suricata-<< parameters.build-variant >>.tar > suricata-<< parameters.suricata-version >>-oracle<< parameters.oracle-version >>.tar.gz
+            gzip -c suricata-<< parameters.build-variant >>.tar > suricata-<< parameters.suricata-version >>-oracle<< parameters.oracle-version >>-<< parameters.build-variant >>.tar.gz
 
             # Create metadata file for artifact
             echo "Suricata Version: << parameters.suricata-version >>" > container-metadata.txt
@@ -180,12 +180,14 @@ jobs:
           root: .
           paths:
             - suricata-<< parameters.build-variant >>.tar
+            - suricata-<< parameters.suricata-version >>-oracle<< parameters.oracle-version >>-<< parameters.build-variant >>.tar.gz
+            - container-metadata.txt
 
       # TEMPORARY: Store container image as CircleCI artifact
       # TODO: Remove this step once ECR integration is fully stable
       - store_artifacts:
-          path: suricata-<< parameters.suricata-version >>-oracle<< parameters.oracle-version >>.tar.gz
-          destination: containers/suricata-<< parameters.suricata-version >>-oracle<< parameters.oracle-version >>.tar.gz
+          path: suricata-<< parameters.suricata-version >>-oracle<< parameters.oracle-version >>-<< parameters.build-variant >>.tar.gz
+          destination: containers/suricata-<< parameters.suricata-version >>-oracle<< parameters.oracle-version >>-<< parameters.build-variant >>.tar.gz
 
       - store_artifacts:
           path: container-metadata.txt
@@ -579,6 +581,12 @@ jobs:
           path: deployment-manifest.json
           destination: deployment/deployment-manifest.json
 
+      # Persist deployment manifest for artifacts job
+      - persist_to_workspace:
+          root: .
+          paths:
+            - deployment-manifest.json
+
   # =============================================================================
   # DOCKER HUB PUSH JOB (COMMENTED OUT - FOR FUTURE USE)
   # =============================================================================
@@ -712,12 +720,30 @@ jobs:
           command: |
             echo "Creating comprehensive artifact package..."
 
+            # Debug: List available files
+            echo "DEBUG: Available files in workspace:"
+            ls -la
+            echo "DEBUG: Available .tar.gz files:"
+            ls -la *.tar.gz || echo "No .tar.gz files found"
+            echo "DEBUG: Available JSON files:"
+            ls -la *.json || echo "No .json files found"
+
             # Create artifacts directory structure
             mkdir -p artifacts/{containers,security,deployment,documentation}
 
             # Copy container image (already compressed from build job)
-            if [ -f "suricata-<< parameters.suricata-version >>-ol<< parameters.oracle-version >>-<< parameters.build-variant >>.tar.gz" ]; then
-              cp suricata-<< parameters.suricata-version >>-ol<< parameters.oracle-version >>-<< parameters.build-variant >>.tar.gz artifacts/containers/
+            # Note: Build job creates filename with build variant included
+            if [ -f "suricata-<< parameters.suricata-version >>-oracle<< parameters.oracle-version >>-<< parameters.build-variant >>.tar.gz" ]; then
+              cp suricata-<< parameters.suricata-version >>-oracle<< parameters.oracle-version >>-<< parameters.build-variant >>.tar.gz artifacts/containers/
+              echo "✓ Copied container image: suricata-<< parameters.suricata-version >>-oracle<< parameters.oracle-version >>-<< parameters.build-variant >>.tar.gz"
+            else
+              echo "WARNING: Container image file not found: suricata-<< parameters.suricata-version >>-oracle<< parameters.oracle-version >>-<< parameters.build-variant >>.tar.gz"
+              ls -la *.tar.gz || echo "No .tar.gz files found"
+            fi
+
+            # Copy container metadata
+            if [ -f "container-metadata.txt" ]; then
+              cp container-metadata.txt artifacts/containers/
             fi
 
             # Copy security reports (Trivy) - variant-specific
@@ -752,6 +778,20 @@ jobs:
               cp security-gate-summary.json artifacts/security/
             fi
 
+            # Copy documentation files
+            if [ -f "README.md" ]; then
+              cp README.md artifacts/documentation/
+            fi
+            if [ -f "CHANGELOG.md" ]; then
+              cp CHANGELOG.md artifacts/documentation/
+            fi
+            if [ -f "BUILD_SUCCESS.md" ]; then
+              cp BUILD_SUCCESS.md artifacts/documentation/
+            fi
+            if [ -d "docs/" ]; then
+              cp -r docs/ artifacts/documentation/
+            fi
+
             # Create comprehensive metadata
             cat > artifacts/README.md \<< EOF
             # Suricata Container Artifacts
@@ -759,7 +799,7 @@ jobs:
             This artifact package contains a complete Suricata container build including:
 
             ## Container Image
-            - **File**: containers/suricata-<< parameters.suricata-version >>-ol<< parameters.oracle-version >>-<< parameters.build-variant >>.tar.gz
+            - **File**: containers/suricata-<< parameters.suricata-version >>-oracle<< parameters.oracle-version >>-<< parameters.build-variant >>.tar.gz
             - **Suricata Version**: << parameters.suricata-version >>
             - **Oracle Linux Version**: << parameters.oracle-version >>
             - **Build Variant**: << parameters.build-variant >>
@@ -791,8 +831,18 @@ jobs:
             ## Usage
             To load the container image:
             \`\`\`bash
-            gunzip -c containers/suricata-<< parameters.suricata-version >>-ol<< parameters.oracle-version >>-<< parameters.build-variant >>.tar.gz | docker load
+            gunzip -c containers/suricata-<< parameters.suricata-version >>-oracle<< parameters.oracle-version >>-<< parameters.build-variant >>.tar.gz | docker load
             \`\`\`
+
+            ## Documentation
+            - **README.md**: Project overview and setup instructions
+            - **CHANGELOG.md**: Version history and changes
+            - **BUILD_SUCCESS.md**: Build validation and success confirmation
+            - **docs/**: Complete documentation directory including:
+              - SETUP.md: Installation and configuration guide
+              - USAGE.md: Container usage examples
+              - SECURITY-COMPLIANCE.md: Security architecture and compliance
+              - TROUBLESHOOTING.md: Common issues and solutions
 
             ## Note
             This artifact storage is temporary and will be removed once ECR integration is fully stable.
