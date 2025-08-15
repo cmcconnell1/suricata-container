@@ -421,6 +421,42 @@ This project represents a modern containerized approach that differs significant
 4. **Artifact** - Container images stored as CircleCI artifacts
 5. **Deploy** - Ready for AWS ECR deployment (TODO)
 
+### Downloading Artifacts from CircleCI
+
+The pipeline creates comprehensive artifact packages containing container images, security scan results, and documentation. Here's how to access them:
+
+#### **Step 1: Navigate to CircleCI Pipeline**
+1. Go to [CircleCI](https://app.circleci.com/) and navigate to the `suricata-container` project
+2. Click on the latest successful pipeline run
+3. Look for the **artifacts jobs** (not the build jobs):
+   - `artifacts-7x-main-napatech` - Comprehensive Napatech variant artifacts
+   - `artifacts-7x-main-afpacket` - Comprehensive AF_PACKET variant artifacts
+
+#### **Step 2: Access Comprehensive Artifacts**
+Click on one of the `artifacts-*` jobs (e.g., `artifacts-7x-main-napatech`) and go to the **"Artifacts"** tab.
+
+#### **Step 3: Download Options**
+
+**Complete Package** (Recommended):
+- `complete/suricata-complete-artifacts-7.0.11.tar.gz` - Everything bundled together
+
+**Individual Components**:
+- `components/README.md` - Documentation explaining contents
+- `components/containers/` - Container image files
+- `components/security/` - All security scan results:
+  - `checkmarx-scan-results.json` - SAST security findings
+  - `checkmarx-scan-results.txt` - Human-readable SAST report
+  - `trivy-scan-report-*.json` - Container vulnerability scans
+  - `trivy-scan-report-*.txt` - Human-readable vulnerability reports
+  - `security-gate-summary.json` - Combined security assessment
+- `components/deployment/` - Kubernetes manifests and deployment files
+
+#### **Important: Build vs. Artifacts Jobs**
+- **Build jobs** (`build-7x-main-*`) - Only contain basic container images
+- **Artifacts jobs** (`artifacts-7x-main-*`) - Contain comprehensive packages with security scans
+
+Always download from the **artifacts jobs** for complete packages with security scan results.
+
 ### Environment Variables Required
 
 For CircleCI to work properly, configure these environment variables in your CircleCI project:
@@ -514,6 +550,19 @@ Each build creates multiple tags for flexible deployment:
 - **Built-in Vulnerability Scanning**: ECR automatically scans images
 - **IAM Integration**: Fine-grained access control
 - **Global Availability**: Multi-region replication support
+
+#### **ECR vs. CircleCI Artifacts**
+
+**Use ECR for**:
+- **Container Images**: Production deployment with `docker pull`
+- **Long-term Storage**: No expiration limits
+- **Direct Deployment**: Kubernetes, Docker Compose, etc.
+
+**Use CircleCI Artifacts for**:
+- **Security Reports**: Trivy and Checkmarx scan results
+- **Complete Packages**: Bundled artifacts with documentation
+- **Compliance Documentation**: Audit trails and security assessments
+- **Development**: Temporary access to build artifacts (30-day retention)
 
 ### Image Information
 

@@ -845,15 +845,15 @@ jobs:
             EOF
 
             # Create artifact package
-            tar -czf suricata-complete-artifacts-<< parameters.suricata-version >>.tar.gz artifacts/
+            tar -czf suricata-complete-artifacts-<< parameters.suricata-version >>-<< parameters.build-variant >>.tar.gz artifacts/
 
-            echo "Artifact package created: suricata-complete-artifacts-<< parameters.suricata-version >>.tar.gz"
-            ls -la suricata-complete-artifacts-<< parameters.suricata-version >>.tar.gz
+            echo "Artifact package created: suricata-complete-artifacts-<< parameters.suricata-version >>-<< parameters.build-variant >>.tar.gz"
+            ls -la suricata-complete-artifacts-<< parameters.suricata-version >>-<< parameters.build-variant >>.tar.gz
 
       # Store comprehensive artifact package
       - store_artifacts:
-          path: suricata-complete-artifacts-<< parameters.suricata-version >>.tar.gz
-          destination: complete/suricata-complete-artifacts-<< parameters.suricata-version >>.tar.gz
+          path: suricata-complete-artifacts-<< parameters.suricata-version >>-<< parameters.build-variant >>.tar.gz
+          destination: complete/suricata-complete-artifacts-<< parameters.suricata-version >>-<< parameters.build-variant >>.tar.gz
 
       # Store individual components for easy access
       - store_artifacts:

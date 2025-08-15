@@ -58,6 +58,52 @@ trivy image --security-checks vuln,config --exit-code 1 --severity CRITICAL d5af
 4. **Result Evaluation:** Critical vulnerabilities cause failure
 5. **Gate Enforcement:** No progression without clean scan
 
+## Security Report Access
+
+### Downloading Security Scan Results
+
+All security scan results are packaged in comprehensive artifacts available through CircleCI:
+
+#### **Where to Find Security Reports**
+
+1. **Navigate to CircleCI Pipeline**:
+   - Go to [CircleCI](https://app.circleci.com/) → `suricata-container` project
+   - Click on the latest successful pipeline run
+   - Look for **artifacts jobs** (not build jobs):
+     - `artifacts-7x-main-napatech` - Napatech variant security reports
+     - `artifacts-7x-main-afpacket` - AF_PACKET variant security reports
+
+2. **Access Security Reports**:
+   - Click on an artifacts job → "Artifacts" tab
+   - Download `complete/suricata-complete-artifacts-7.0.11.tar.gz` for everything
+   - Or download individual files from `components/security/`:
+
+#### **Security Report Types**
+
+**Trivy Container Scanning**:
+- `trivy-scan-report-napatech.json` - Detailed vulnerability report (JSON)
+- `trivy-scan-report-napatech.txt` - Human-readable vulnerability summary
+
+**Checkmarx SAST Scanning**:
+- `checkmarx-scan-results.json` - Detailed SAST findings (JSON)
+- `checkmarx-scan-results.txt` - Human-readable SAST report
+- `checkmarx-scan-id.txt` - Scan identifier for Checkmarx console
+- `checkmarx-scan-response.json` - Scan initiation response
+
+**Combined Security Assessment**:
+- `security-gate-summary.json` - Combined evaluation results and deployment decision
+
+#### **Compliance Documentation**
+
+Each security report includes:
+- **Timestamps**: Scan execution time and version information
+- **CVE References**: Complete vulnerability details with CVSS scores
+- **Risk Assessment**: Severity levels and impact analysis
+- **Remediation Guidance**: Recommended fixes and updates
+- **Compliance Status**: Pass/fail status for security gates
+
+**Important**: Always download from **artifacts jobs** (`artifacts-7x-main-*`) rather than build jobs (`build-7x-main-*`) to get complete security scan results.
+
 ## Access Control and Authentication
 
 ### AWS ECR Authentication

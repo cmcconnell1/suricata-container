@@ -123,6 +123,37 @@ All security scan results are available in CircleCI artifacts under the `securit
 ### Combined Security Gate
 - `security-gate-summary.json`: Combined evaluation results
 
+## Accessing Security Reports
+
+### How to Download Security Scan Results
+
+Security reports are packaged in comprehensive artifacts created by the pipeline:
+
+#### **Step 1: Navigate to CircleCI**
+1. Go to [CircleCI](https://app.circleci.com/) and open the `suricata-container` project
+2. Click on the latest successful pipeline run
+3. Look for the **artifacts jobs** (not the build jobs):
+   - `artifacts-7x-main-napatech` - Comprehensive Napatech variant artifacts
+   - `artifacts-7x-main-afpacket` - Comprehensive AF_PACKET variant artifacts
+
+#### **Step 2: Download Security Reports**
+1. Click on one of the artifacts jobs (e.g., `artifacts-7x-main-napatech`)
+2. Go to the **"Artifacts"** tab
+3. Download options:
+   - **Complete Package**: `complete/suricata-complete-artifacts-7.0.11.tar.gz` (recommended)
+   - **Individual Reports**: From `components/security/` directory
+
+#### **Step 3: Extract and Review**
+The complete package contains all security reports in the `components/security/` directory:
+- `checkmarx-scan-results.json` - SAST findings (machine-readable)
+- `checkmarx-scan-results.txt` - SAST findings (human-readable)
+- `trivy-scan-report-napatech.json` - Container vulnerabilities (JSON)
+- `trivy-scan-report-napatech.txt` - Container vulnerabilities (text)
+- `security-gate-summary.json` - Combined security assessment
+
+#### **Important Note**
+Always download from **artifacts jobs** (`artifacts-7x-main-*`) rather than **build jobs** (`build-7x-main-*`). Build jobs only contain basic container images, while artifacts jobs contain the comprehensive packages with all security scan results.
+
 ## Troubleshooting
 
 ### Common Issues
