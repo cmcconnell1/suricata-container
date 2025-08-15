@@ -428,10 +428,6 @@ jobs:
           root: .
           paths:
             - security-gate-summary.json
-            - checkmarx-scan-response.json
-            - checkmarx-scan-results.json
-            - checkmarx-scan-results.txt
-            - checkmarx-scan-id.txt
 
   scan:
     executor: suricata-builder
@@ -925,6 +921,7 @@ workflows:
           requires:
             - "scan-7x-main-napatech"
             - "scan-7x-main-afpacket"
+            - "checkmarx-scan-7x-main"
           filters:
             branches:
               only: main
@@ -1012,6 +1009,7 @@ workflows:
           build-variants: "afpacket"
           requires:
             - "scan-8x"
+            - "checkmarx-scan-8x"
           filters:
             branches:
               only: suricata-8.x
