@@ -293,6 +293,11 @@ jobs:
 
   security-gate:
     executor: suricata-builder
+    parameters:
+      build-variants:
+        type: string
+        default: "napatech,afpacket"
+        description: "Comma-separated list of build variants to check"
     steps:
       - attach_workspace:
           at: .
@@ -306,23 +311,31 @@ jobs:
 
             SECURITY_PASSED=true
 
-            # Check Trivy results
+            # Check Trivy results for all build variants
             echo "--- Trivy Container Scan Results ---"
-            if [ -f "trivy-scan-report.json" ]; then
-              echo "Trivy scan report found"
-              # Check for critical vulnerabilities in Trivy report
-              CRITICAL_VULNS=$(jq -r '.Results[]?.Vulnerabilities[]? | select(.Severity == "CRITICAL") | .VulnerabilityID' trivy-scan-report.json 2>/dev/null | wc -l || echo "0")
-              echo "Critical vulnerabilities found: ${CRITICAL_VULNS}"
-              if [ "${CRITICAL_VULNS}" -gt 0 ]; then
-                echo "❌ TRIVY: Critical vulnerabilities detected"
-                SECURITY_PASSED=false
+            VARIANTS="<< parameters.build-variants >>"
+            IFS=',' read -ra VARIANT_ARRAY <<< "$VARIANTS"
+
+            for variant in "${VARIANT_ARRAY[@]}"; do
+              variant=$(echo "$variant" | xargs)  # trim whitespace
+              echo "Checking Trivy results for variant: $variant"
+
+              if [ -f "trivy-scan-report-${variant}.json" ]; then
+                echo "Trivy scan report found for $variant"
+                # Check for critical vulnerabilities in Trivy report
+                CRITICAL_VULNS=$(jq -r '.Results[]?.Vulnerabilities[]? | select(.Severity == "CRITICAL") | .VulnerabilityID' "trivy-scan-report-${variant}.json" 2>/dev/null | wc -l || echo "0")
+                echo "Critical vulnerabilities found in $variant: ${CRITICAL_VULNS}"
+                if [ "${CRITICAL_VULNS}" -gt 0 ]; then
+                  echo "❌ TRIVY ($variant): Critical vulnerabilities detected"
+                  SECURITY_PASSED=false
+                else
+                  echo "✅ TRIVY ($variant): No critical vulnerabilities detected"
+                fi
               else
-                echo "✅ TRIVY: No critical vulnerabilities detected"
+                echo "⚠️  TRIVY ($variant): Scan report not found"
+                SECURITY_PASSED=false
               fi
-            else
-              echo "⚠️  TRIVY: Scan report not found"
-              SECURITY_PASSED=false
-            fi
+            done
 
             # Check Checkmarx results
             echo "--- Checkmarx SAST Scan Results ---"
@@ -426,14 +439,14 @@ jobs:
             # TEMPORARY: Generate detailed scan report for artifacts
             # TODO: Remove this once ECR integration is fully stable and artifact storage is no longer needed
             echo "Generating detailed security scan report for artifacts..."
-            trivy image --format json --output trivy-scan-report.json suricata:latest || true
-            trivy image --format table --output trivy-scan-report.txt suricata:latest || true
+            trivy image --format json --output trivy-scan-report-<< parameters.build-variant >>.json suricata:latest || true
+            trivy image --format table --output trivy-scan-report-<< parameters.build-variant >>.txt suricata:latest || true
 
       - persist_to_workspace:
           root: .
           paths:
-            - trivy-scan-report.json
-            - trivy-scan-report.txt
+            - trivy-scan-report-<< parameters.build-variant >>.json
+            - trivy-scan-report-<< parameters.build-variant >>.txt
             - checkmarx-scan-response.json
             - checkmarx-scan-results.json
             - checkmarx-scan-results.txt
@@ -442,12 +455,12 @@ jobs:
       # TEMPORARY: Store security scan reports as CircleCI artifacts
       # TODO: Remove this step once ECR integration is fully stable
       - store_artifacts:
-          path: trivy-scan-report.json
-          destination: security/trivy-scan-report.json
+          path: trivy-scan-report-<< parameters.build-variant >>.json
+          destination: security/trivy-scan-report-<< parameters.build-variant >>.json
 
       - store_artifacts:
-          path: trivy-scan-report.txt
-          destination: security/trivy-scan-report.txt
+          path: trivy-scan-report-<< parameters.build-variant >>.txt
+          destination: security/trivy-scan-report-<< parameters.build-variant >>.txt
 
   push-to-ecr:
     executor: suricata-builder
@@ -684,12 +697,12 @@ jobs:
               cp suricata-<< parameters.suricata-version >>-ol<< parameters.oracle-version >>-<< parameters.build-variant >>.tar.gz artifacts/containers/
             fi
 
-            # Copy security reports (Trivy)
-            if [ -f "trivy-scan-report.json" ]; then
-              cp trivy-scan-report.json artifacts/security/
+            # Copy security reports (Trivy) - variant-specific
+            if [ -f "trivy-scan-report-<< parameters.build-variant >>.json" ]; then
+              cp trivy-scan-report-<< parameters.build-variant >>.json artifacts/security/
             fi
-            if [ -f "trivy-scan-report.txt" ]; then
-              cp trivy-scan-report.txt artifacts/security/
+            if [ -f "trivy-scan-report-<< parameters.build-variant >>.txt" ]; then
+              cp trivy-scan-report-<< parameters.build-variant >>.txt artifacts/security/
             fi
 
             # Copy security reports (Checkmarx)
@@ -731,8 +744,8 @@ jobs:
 
             ## Security Reports
             ### Trivy Container Scanning
-            - **JSON Report**: security/trivy-scan-report.json
-            - **Text Report**: security/trivy-scan-report.txt
+            - **JSON Report**: security/trivy-scan-report-<< parameters.build-variant >>.json
+            - **Text Report**: security/trivy-scan-report-<< parameters.build-variant >>.txt
 
             ### Checkmarx SAST Scanning
             - **Scan Response**: security/checkmarx-scan-response.json
@@ -835,6 +848,7 @@ workflows:
       # SECURITY GATE: Combined evaluation of all security scans
       - security-gate:
           name: "security-gate-7x-main"
+          build-variants: "napatech,afpacket"
           requires:
             - "scan-7x-main-napatech"
             - "scan-7x-main-afpacket"
@@ -922,6 +936,7 @@ workflows:
       # SECURITY GATE: Combined evaluation of all security scans
       - security-gate:
           name: "security-gate-8x"
+          build-variants: "afpacket"
           requires:
             - "scan-8x"
           filters:
