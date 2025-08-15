@@ -23,7 +23,7 @@
 # - suricata-8.x branch: Suricata 8.x Oracle Linux (future development)
 #
 # AWS ECR Deployment (CURRENT):
-# - Images pushed to: 339712848218.dkr.ecr.us-east-1.amazonaws.com/ecoe/pe/engineering/suricata
+# - Images pushed to: 123456789012.dkr.ecr.us-east-1.amazonaws.com/ecoe/pe/engineering/suricata
 # - Uses temporary credentials via IAM role assumption
 # - Multiple tags per image for version management
 # - Automatic vulnerability scanning in ECR
@@ -41,7 +41,7 @@
 # - Artifacts retained for 30 days by default in CircleCI
 #
 # Security:
-# - Uses IAM role: arn:aws:iam::339712848218:role/DevOps-Suricata-ECR-Push-Role
+# - Uses IAM role: arn:aws:iam::123456789012:role/DevOps-Suricata-ECR-Push-Role
 # - No long-term AWS credentials stored in CircleCI
 # - Temporary credentials with automatic expiration
 # - Trivy security scanning blocks critical vulnerabilities
@@ -502,7 +502,7 @@ jobs:
       # Setup AWS CLI with IAM role for temporary credentials
       - aws-cli/setup:
           profile_name: "push-suricata-image"
-          role_arn: "arn:aws:iam::339712848218:role/DevOps-Suricata-ECR-Push-Role"
+          role_arn: "arn:aws:iam::123456789012:role/DevOps-Suricata-ECR-Push-Role"
 
       # Load image from workspace
       - run:
@@ -514,13 +514,13 @@ jobs:
           name: Login to ECR
           command: |
             aws ecr get-login-password --region us-east-1 --profile push-suricata-image | \
-              docker login --username AWS --password-stdin 339712848218.dkr.ecr.us-east-1.amazonaws.com
+              docker login --username AWS --password-stdin 123456789012.dkr.ecr.us-east-1.amazonaws.com
 
       # Tag and push images to ECR
       - run:
           name: Tag and push images to ECR
           command: |
-            ECR_REGISTRY="339712848218.dkr.ecr.us-east-1.amazonaws.com"
+            ECR_REGISTRY="123456789012.dkr.ecr.us-east-1.amazonaws.com"
             REPO_NAME="ecoe/pe/engineering/suricata"
 
             # Create multiple tags for better image management
