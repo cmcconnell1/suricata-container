@@ -169,19 +169,19 @@ jobs:
             gzip -c suricata-<< parameters.build-variant >>.tar > suricata-<< parameters.suricata-version >>-oracle<< parameters.oracle-version >>-<< parameters.build-variant >>.tar.gz
 
             # Create metadata file for artifact
-            echo "Suricata Version: << parameters.suricata-version >>" > container-metadata.txt
-            echo "Oracle Version: << parameters.oracle-version >>" >> container-metadata.txt
-            echo "Build Date: $(date -u +%Y-%m-%dT%H:%M:%SZ)" >> container-metadata.txt
-            echo "Git Commit: ${CIRCLE_SHA1}" >> container-metadata.txt
-            echo "Git Branch: ${CIRCLE_BRANCH}" >> container-metadata.txt
-            echo "CircleCI Build: ${CIRCLE_BUILD_NUM}" >> container-metadata.txt
+            echo "Suricata Version: << parameters.suricata-version >>" > container-metadata-<< parameters.build-variant >>.txt
+            echo "Oracle Version: << parameters.oracle-version >>" >> container-metadata-<< parameters.build-variant >>.txt
+            echo "Build Date: $(date -u +%Y-%m-%dT%H:%M:%SZ)" >> container-metadata-<< parameters.build-variant >>.txt
+            echo "Git Commit: ${CIRCLE_SHA1}" >> container-metadata-<< parameters.build-variant >>.txt
+            echo "Git Branch: ${CIRCLE_BRANCH}" >> container-metadata-<< parameters.build-variant >>.txt
+            echo "CircleCI Build: ${CIRCLE_BUILD_NUM}" >> container-metadata-<< parameters.build-variant >>.txt
 
       - persist_to_workspace:
           root: .
           paths:
             - suricata-<< parameters.build-variant >>.tar
             - suricata-<< parameters.suricata-version >>-oracle<< parameters.oracle-version >>-<< parameters.build-variant >>.tar.gz
-            - container-metadata.txt
+            - container-metadata-<< parameters.build-variant >>.txt
 
       # TEMPORARY: Store container image as CircleCI artifact
       # TODO: Remove this step once ECR integration is fully stable
@@ -190,8 +190,8 @@ jobs:
           destination: containers/suricata-<< parameters.suricata-version >>-oracle<< parameters.oracle-version >>-<< parameters.build-variant >>.tar.gz
 
       - store_artifacts:
-          path: container-metadata.txt
-          destination: containers/container-metadata.txt
+          path: container-metadata-<< parameters.build-variant >>.txt
+          destination: containers/container-metadata-<< parameters.build-variant >>.txt
 
   checkmarx-scan:
     executor: suricata-builder
@@ -738,8 +738,8 @@ jobs:
             fi
 
             # Copy container metadata
-            if [ -f "container-metadata.txt" ]; then
-              cp container-metadata.txt artifacts/containers/
+            if [ -f "container-metadata-<< parameters.build-variant >>.txt" ]; then
+              cp container-metadata-<< parameters.build-variant >>.txt artifacts/containers/
             fi
 
             # Copy security reports (Trivy) - variant-specific
