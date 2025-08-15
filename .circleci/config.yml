@@ -315,7 +315,7 @@ jobs:
           command: |
             echo "--- Trivy Container Scan Results ---"
             VARIANTS="<< parameters.build-variants >>"
-            IFS=',' read -ra VARIANT_ARRAY <<< "$VARIANTS"
+            IFS=',' read -ra VARIANT_ARRAY \<<< "$VARIANTS"
 
             for variant in "${VARIANT_ARRAY[@]}"; do
               variant=$(echo "$variant" | xargs)  # trim whitespace
@@ -389,7 +389,7 @@ jobs:
 
             # Count critical vulns from all variants
             VARIANTS="<< parameters.build-variants >>"
-            IFS=',' read -ra VARIANT_ARRAY <<< "$VARIANTS"
+            IFS=',' read -ra VARIANT_ARRAY \<<< "$VARIANTS"
             for variant in "${VARIANT_ARRAY[@]}"; do
               variant=$(echo "$variant" | xargs)
               if [ -f "trivy-scan-report-${variant}.json" ]; then
