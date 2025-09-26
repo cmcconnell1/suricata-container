@@ -1,0 +1,117 @@
+# Suricata Container Project .gitignore
+
+# Docker artifacts
+*.tar
+*.tar.gz
+docker-compose.override.yml
+.docker/
+
+# Suricata logs and runtime files
+logs/
+*.log
+*.json
+*.pcap
+*.pcapng
+eve.json
+fast.log
+suricata.log
+stats.log
+*.pid
+
+# Suricata rule files (except custom ones)
+rules/*.rules
+!rules/custom.rules
+rules/classification.config
+rules/reference.config
+!rules/reference.config
+
+# Build artifacts
+workspace/
+build/
+dist/
+target/
+
+# Environment and secrets
+.env
+.env.local
+.env.production
+.env.staging
+*.key
+*.pem
+*.crt
+secrets/
+
+# IDE and editor files
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+Thumbs.db
+
+# OS generated files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# Temporary files
+tmp/
+temp/
+*.tmp
+*.temp
+*.bak
+*.backup
+
+# CircleCI local testing
+.circleci/local/
+
+# Make artifacts
+*.o
+*.so
+*.dylib
+
+# Compressed files
+*.zip
+*.rar
+*.7z
+
+# Documentation build artifacts
+docs/_build/
+docs/.doctrees/
+
+# Test artifacts
+test-results/
+coverage/
+*.coverage
+
+# Node.js (if any tooling uses it)
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Python (if any tooling uses it)
+__pycache__/
+*.py[cod]
+*$py.class
+*.egg-info/
+.pytest_cache/
+
+# Local development overrides
+docker-compose.local.yml
+Makefile.local
+config.local.*
+
+# Platform-specific build artifacts
+.buildx_cache/
+docker-build-cache/
+*.buildinfo
+
+# macOS specific
+.docker/
+docker-desktop-data/

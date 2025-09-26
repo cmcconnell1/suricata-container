@@ -1,0 +1,101 @@
+%YAML 1.1
+---
+# =============================================================================
+# SURICATA CONFIGURATION FILE
+# =============================================================================
+# This is the main configuration file for Suricata IDS/IPS.
+# It defines network variables, rule locations, output formats, and logging.
+#
+# Key Sections:
+# - vars: Network and port definitions for rule matching
+# - rule-files: Location and list of detection rules
+# - outputs: Log formats and destinations
+# - logging: System logging configuration
+#
+# This configuration is optimized for container deployment with
+# structured JSON logging and standard network definitions.
+# =============================================================================
+
+# -----------------------------------------------------------------------------
+# NETWORK VARIABLES: Define network segments and port groups
+# -----------------------------------------------------------------------------
+vars:
+  # Network address groups for rule matching
+  address-groups:
+    # Define internal/private networks (RFC 1918 addresses)
+    HOME_NET: "[192.168.0.0/16,10.0.0.0/8,172.16.0.0/12]"
+    # External networks (everything not in HOME_NET)
+    EXTERNAL_NET: "!$HOME_NET"
+
+  # Port groups for protocol-specific rules
+  port-groups:
+    # Standard HTTP ports
+    HTTP_PORTS: "80"
+    # Ports to exclude from shellcode detection
+    SHELLCODE_PORTS: "!80"
+    # Oracle database default port
+    ORACLE_PORTS: 1521
+    # SSH service port
+    SSH_PORTS: 22
+
+# -----------------------------------------------------------------------------
+# RULE CONFIGURATION: Define rule locations and files
+# -----------------------------------------------------------------------------
+# Default directory containing Suricata rules
+default-rule-path: /etc/suricata/rules
+
+# List of rule files to load (relative to default-rule-path)
+rule-files:
+  - custom.rules  # Custom rules specific to this deployment
+
+# Rule classification and reference configuration files
+classification-file: /etc/suricata/rules/reference.config
+reference-config-file: /etc/suricata/rules/reference.config
+
+# -----------------------------------------------------------------------------
+# OUTPUT CONFIGURATION: Define log formats and destinations
+# -----------------------------------------------------------------------------
+outputs:
+  # Fast log format - simple, one-line alerts
+  - fast:
+      enabled: yes
+      filename: fast.log
+      append: yes
+
+  # EVE JSON log format - structured, detailed logging
+  - eve-log:
+      enabled: yes
+      type: file
+      filename: eve.json
+      # Event types to log in JSON format
+      types:
+        - alert      # Security alerts and detections
+        - http       # HTTP transaction details
+        - dns        # DNS query/response logging
+        - tls        # TLS/SSL connection details
+        - ssh        # SSH connection information
+        - smtp       # Email transaction logging
+        - flow       # Network flow summaries
+        - netflow    # NetFlow-style records
+      filetype: regular
+      # Rotate logs daily to prevent excessive file sizes
+      rotate-interval: 24h
+      # Include metadata in log entries
+      metadata: yes
+
+# -----------------------------------------------------------------------------
+# SYSTEM LOGGING: Configure Suricata's internal logging
+# -----------------------------------------------------------------------------
+logging:
+  # Default logging verbosity level
+  default-log-level: info
+  outputs:
+    # Disable console logging (not useful in containers)
+    - console:
+        enabled: no
+    # Enable file-based logging for troubleshooting
+    - file:
+        enabled: yes
+        filename: /var/log/suricata/suricata.log
+        append: yes
+        level: info
